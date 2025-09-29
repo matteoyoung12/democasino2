@@ -10,6 +10,7 @@ import {
   User,
   Settings,
   LogOut,
+  Bomb,
 } from "lucide-react";
 import Logo from "@/components/logo";
 import {
@@ -40,6 +41,7 @@ const menuItems = [
   { href: "/dashboard/slots", label: "Slots", icon: Gem },
   { href: "/dashboard/roulette", label: "Roulette", icon: Dice5 },
   { href: "/dashboard/crash", label: "Crash", icon: Rocket },
+  { href: "/dashboard/mines", label: "Mines", icon: Bomb },
 ];
 
 export default function DashboardLayout({
