@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
@@ -5,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Circle, Play } from 'lucide-react';
+import { useBalance } from '@/contexts/BalanceContext';
 
 const numbers = [
   0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26
@@ -25,8 +27,8 @@ type Bet = {
 
 export default function RouletteGame() {
   const [bets, setBets] = useState<Bet[]>([]);
-  const [balance, setBalance] = useState(1000);
-  const [betAmount, setBetAmount] = useState(10);
+  const { balance, setBalance } = useBalance();
+  const [chipAmount, setChipAmount] = useState(10);
   const [spinning, setSpinning] = useState(false);
   const [winningNumber, setWinningNumber] = useState<number | null>(null);
   const [displayNumber, setDisplayNumber] = useState<number | null>(null);
@@ -35,17 +37,17 @@ export default function RouletteGame() {
 
   const placeBet = (type: BetType, value: number) => {
     if (spinning) return;
-    if (balance < betAmount) {
+    if (balance < chipAmount) {
       toast({ title: 'Insufficient balance', variant: 'destructive' });
       return;
     }
-    setBalance(prev => prev - betAmount);
+    setBalance(prev => prev - chipAmount);
     setBets(prev => {
       const existingBet = prev.find(b => b.type === type && b.value === value);
       if (existingBet) {
-        return prev.map(b => b.type === type && b.value === value ? { ...b, amount: b.amount + betAmount } : b);
+        return prev.map(b => b.type === type && b.value === value ? { ...b, amount: b.amount + chipAmount } : b);
       }
-      return [...prev, { type, value, amount: betAmount }];
+      return [...prev, { type, value, amount: chipAmount }];
     });
   };
 
@@ -59,32 +61,42 @@ export default function RouletteGame() {
     setDisplayNumber(null);
 
     let spinCount = 0;
-    const interval = setInterval(() => {
-      const randomNum = numbers[Math.floor(Math.random() * numbers.length)];
-      setDisplayNumber(randomNum);
-      spinCount++;
-      if (spinCount > 30) { // Simulate spinning for ~3 seconds
-        clearInterval(interval);
-        const finalNumber = numbers[Math.floor(Math.random() * numbers.length)];
-        setWinningNumber(finalNumber);
-        setDisplayNumber(finalNumber);
-      }
-    }, 100);
+    const maxSpins = 50 + Math.floor(Math.random() * 20); // More randomness
+    const initialInterval = 50;
+
+    const spin = () => {
+        const randomNum = numbers[Math.floor(Math.random() * numbers.length)];
+        setDisplayNumber(randomNum);
+        spinCount++;
+
+        let nextInterval = initialInterval + (spinCount * spinCount) / 10; // Decelerate
+        
+        if (spinCount < maxSpins) {
+            setTimeout(spin, nextInterval);
+        } else {
+            const finalNumber = numbers[Math.floor(Math.random() * numbers.length)];
+            setWinningNumber(finalNumber);
+            setDisplayNumber(finalNumber);
+        }
+    }
+    spin();
+
   }, [bets.length, toast]);
 
   useEffect(() => {
     if (winningNumber !== null) {
       let winnings = 0;
-      let totalBetAmount = 0;
+      let totalRefund = 0; // Amount of the original bet to refund on win
+      
       bets.forEach(bet => {
-        totalBetAmount += bet.amount;
         if (bet.type === 'number' && bet.value === winningNumber) {
           winnings += bet.amount * 35;
+          totalRefund += bet.amount; // Refund this bet
         }
       });
 
       if (winnings > 0) {
-        setBalance(prev => prev + winnings + totalBetAmount);
+        setBalance(prev => prev + winnings + totalRefund);
         toast({ title: 'You Win!', description: `Won ${winnings.toFixed(2)} credits on number ${winningNumber}.` });
       } else {
         toast({ title: 'You Lose', description: `The winning number was ${winningNumber}.`, variant: 'destructive' });
@@ -93,16 +105,17 @@ export default function RouletteGame() {
       setTimeout(() => {
         setBets([]);
         setSpinning(false);
-      }, 2000);
+        setWinningNumber(null);
+      }, 3000);
     }
-  }, [winningNumber, bets, toast]);
+  }, [winningNumber, bets, toast, setBalance]);
 
 
   return (
     <div className="flex flex-col items-center gap-8 w-full max-w-4xl">
-      <div className="relative flex items-center justify-center w-48 h-48 rounded-full border-4 border-primary shadow-lg">
-        <Circle className={cn("absolute w-full h-full text-card animate-spin", spinning ? "duration-500" : "duration-[20s]")}/>
-        <div className={cn("absolute w-40 h-40 rounded-full flex items-center justify-center text-5xl font-bold text-white", displayNumber !== null ? getNumberColor(displayNumber) : 'bg-card')}>
+      <div className="relative flex items-center justify-center w-48 h-48 rounded-full border-4 border-primary shadow-lg bg-card">
+        <Circle className={cn("absolute w-full h-full text-card transition-transform ease-out", spinning ? "animate-spin duration-500" : "duration-0")}/>
+        <div className={cn("absolute w-40 h-40 rounded-full flex items-center justify-center text-5xl font-bold text-white transition-colors", displayNumber !== null ? getNumberColor(displayNumber) : 'bg-card')}>
           {displayNumber !== null ? displayNumber : '?'}
         </div>
       </div>
@@ -126,9 +139,9 @@ export default function RouletteGame() {
         <div className="text-lg">Balance: <span className="font-bold text-primary">{balance.toFixed(2)}</span></div>
         <div className="flex-grow" />
         <div className="flex items-center gap-2">
-            <span className="text-lg">Bet:</span>
+            <span className="text-lg">Chip:</span>
             {[1, 5, 10, 25, 100].map(amount => (
-                <Button key={amount} variant={betAmount === amount ? 'secondary' : 'outline'} onClick={() => setBetAmount(amount)} disabled={spinning} className={betAmount === amount ? 'bg-primary' : ''}>
+                <Button key={amount} variant={chipAmount === amount ? 'secondary' : 'outline'} onClick={() => setChipAmount(amount)} disabled={spinning} className={chipAmount === amount ? 'bg-primary' : ''}>
                     {amount}
                 </Button>
             ))}

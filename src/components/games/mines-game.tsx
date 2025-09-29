@@ -1,3 +1,4 @@
+
 "use client";
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { useBalance } from '@/contexts/BalanceContext';
 
 
 type Tile = {
@@ -37,6 +39,7 @@ export default function MinesGame() {
   const [revealedGems, setRevealedGems] = useState(0);
   const [currentMultiplier, setCurrentMultiplier] = useState(1.0);
   const [nextMultiplier, setNextMultiplier] = useState(1.0);
+  const { balance, setBalance } = useBalance();
 
   const { toast } = useToast();
 
@@ -58,16 +61,26 @@ export default function MinesGame() {
   };
 
   useEffect(() => {
-    setCurrentMultiplier(calculateMultiplier(revealedGems, mineCount));
-    setNextMultiplier(calculateMultiplier(revealedGems + 1, mineCount));
-  }, [revealedGems, mineCount]);
+    if (gameState === 'playing') {
+      setCurrentMultiplier(calculateMultiplier(revealedGems, mineCount));
+      setNextMultiplier(calculateMultiplier(revealedGems + 1, mineCount));
+    } else {
+      setCurrentMultiplier(1.0);
+      setNextMultiplier(calculateMultiplier(1, mineCount));
+    }
+  }, [revealedGems, mineCount, gameState]);
 
   const startGame = () => {
     if (betAmount <= 0) {
       toast({ title: "Invalid bet amount", variant: 'destructive' });
       return;
     }
+    if (balance < betAmount) {
+      toast({ title: "Insufficient balance", variant: 'destructive' });
+      return;
+    }
 
+    setBalance(prev => prev - betAmount);
     setGameState('playing');
     setRevealedGems(0);
     
@@ -106,6 +119,7 @@ export default function MinesGame() {
   
   const handleCashout = () => {
     const winnings = betAmount * currentMultiplier;
+    setBalance(prev => prev + winnings);
     toast({
         title: "Cashed Out!",
         description: `You won ${winnings.toFixed(2)} credits.`,
@@ -114,21 +128,18 @@ export default function MinesGame() {
   }
 
   const renderGrid = () => {
-    if (grid.length === 0) {
-        return Array(GRID_SIZE).fill(0).map((_, i) => <div key={i} className="aspect-square rounded-lg bg-card/50" />);
-    }
     return grid.map((tile, index) => (
       <button
         key={index}
         onClick={() => handleTileClick(index)}
-        disabled={gameState !== 'playing'}
+        disabled={gameState !== 'playing' || tile.isRevealed}
         className={cn(
           'aspect-square rounded-lg flex items-center justify-center transition-all duration-300 transform hover:scale-105',
           {
             'bg-card/50 hover:bg-primary/20': !tile.isRevealed,
             'bg-green-500/20 border border-green-500': tile.isRevealed && !tile.isMine,
             'bg-red-500/20 border border-red-500 animate-pulse': tile.isRevealed && tile.isMine,
-            'cursor-not-allowed': gameState !== 'playing',
+            'cursor-not-allowed': gameState !== 'playing' || tile.isRevealed,
           }
         )}
       >
@@ -155,22 +166,20 @@ export default function MinesGame() {
           <CardTitle>Game Controls</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4">
-          {gameState === 'betting' ? (
-             <Button onClick={startGame} size="lg" className="h-16 w-full text-xl bg-primary text-primary-foreground hover:bg-primary/90">
-                <Play className="mr-2"/> Place Bet
-            </Button>
-          ) : (
+          {gameState === 'playing' ? (
              <Button onClick={handleCashout} disabled={!isCashingOut} size="lg" className="h-16 w-full text-xl bg-green-500 hover:bg-green-600">
                <PiggyBank className="mr-2" /> Cash Out { (betAmount * currentMultiplier).toFixed(2) }
             </Button>
-          )}
-
-          {gameState === 'busted' && (
+          ) : gameState === 'busted' ? (
              <Button onClick={() => {
                 setGameState('betting');
                 setGrid(createInitialGrid());
              }} size="lg" className="h-16 w-full text-xl">
                 <Play className="mr-2"/> Play Again
+            </Button>
+          ) : (
+             <Button onClick={startGame} size="lg" className="h-16 w-full text-xl bg-primary text-primary-foreground hover:bg-primary/90">
+                <Play className="mr-2"/> Place Bet
             </Button>
           )}
 
@@ -192,7 +201,7 @@ export default function MinesGame() {
             </Select>
           </div>
         </CardContent>
-        {gameState === 'playing' && (
+        {(gameState === 'playing' || gameState === 'busted') && (
             <CardFooter className="flex-col items-start gap-1">
                 <p>Gems Found: <span className="font-bold text-primary">{revealedGems}</span></p>
                 <p>Current Multiplier: <span className="font-bold text-primary">{currentMultiplier.toFixed(2)}x</span></p>

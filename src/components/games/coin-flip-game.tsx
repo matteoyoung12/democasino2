@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -9,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { useBalance } from '@/contexts/BalanceContext';
 
 
 export default function CoinFlipGame() {
@@ -16,7 +18,7 @@ export default function CoinFlipGame() {
   const [result, setResult] = useState<'heads' | 'tails' | null>(null);
   const [choice, setChoice] = useState<'heads' | 'tails'>('heads');
   const [betAmount, setBetAmount] = useState(10);
-  const [balance, setBalance] = useState(1000);
+  const { balance, setBalance } = useBalance();
 
   const { toast } = useToast();
 
@@ -44,7 +46,7 @@ export default function CoinFlipGame() {
         toast({ title: `You Lost! It was ${flipResult}.`, variant: 'destructive' });
       }
     }, 2000); // Animation duration
-  }, [betAmount, balance, choice, toast]);
+  }, [betAmount, balance, choice, toast, setBalance]);
 
   return (
     <div className="flex flex-col items-center gap-8 w-full max-w-md">
@@ -110,4 +112,3 @@ export default function CoinFlipGame() {
     </div>
   );
 }
-

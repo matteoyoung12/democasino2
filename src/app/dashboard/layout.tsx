@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -44,7 +45,7 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-
+import { BalanceProvider, useBalance } from "@/contexts/BalanceContext";
 
 const menuItems = [
   { href: "/dashboard", label: "Lobby", icon: LayoutGrid },
@@ -56,7 +57,8 @@ const menuItems = [
 ];
 
 
-function DepositDialog({ balance, setBalance }: { balance: number, setBalance: (balance: number) => void}) {
+function DepositDialog() {
+    const { balance, setBalance } = useBalance();
     const [amount, setAmount] = useState(100);
     const { toast } = useToast();
 
@@ -103,8 +105,9 @@ function DepositDialog({ balance, setBalance }: { balance: number, setBalance: (
 }
 
 
-function TopNav({balance, setBalance}: {balance: number, setBalance: (balance: number) => void}) {
+function TopNav() {
     const pathname = usePathname();
+    const { balance } = useBalance();
 
     return (
         <header className="sticky top-0 z-10 flex h-20 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm sm:px-6">
@@ -136,7 +139,7 @@ function TopNav({balance, setBalance}: {balance: number, setBalance: (balance: n
                     <Wallet className="h-5 w-5 text-primary" />
                     <span>${balance.toFixed(2)}</span>
                 </div>
-                <DepositDialog balance={balance} setBalance={setBalance} />
+                <DepositDialog />
                  <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="h-auto rounded-full p-0">
@@ -171,17 +174,27 @@ function TopNav({balance, setBalance}: {balance: number, setBalance: (balance: n
     );
 }
 
-export default function DashboardLayout({
+function DashboardLayoutContent({
   children,
 }: {
   children: React.ReactNode;
 }) {
-    const [balance, setBalance] = useState(1000);
+    return (
+        <div className="flex min-h-screen w-full flex-col">
+            <TopNav />
+            {children}
+        </div>
+    );
+}
 
-  return (
-    <div className="flex min-h-screen w-full flex-col">
-        <TopNav balance={balance} setBalance={setBalance}/>
-        {children}
-    </div>
-  );
+export default function DashboardLayout({
+    children,
+}: {
+    children: React.ReactNode;
+}) {
+    return (
+        <BalanceProvider>
+            <DashboardLayoutContent>{children}</DashboardLayoutContent>
+        </BalanceProvider>
+    );
 }

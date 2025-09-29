@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -6,11 +7,43 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { generateCrashCurve } from '@/ai/flows/generate-crash-curve';
 import { useToast } from '@/hooks/use-toast';
 import { Rocket, Wallet, Target, Play, Zap } from 'lucide-react';
+import { useBalance } from '@/contexts/BalanceContext';
 
 type GameState = 'idle' | 'betting' | 'running' | 'crashed' | 'cashed_out';
+
+// A simple deterministic pseudo-random number generator
+const prng = (seed: number) => {
+  let t = (seed += 0x6d2b79f5);
+  t = Math.imul(t ^ (t >>> 15), t | 1);
+  t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+};
+
+// Generate a plausible crash point. This is for client-side simulation only.
+// The actual crash point should be determined by the server in a real app.
+const generateCrashPoint = (seed: number) => {
+    const r = prng(seed);
+    // Formula to make lower multipliers more common
+    const crash = 1 / (1 - r);
+    return Math.max(1, crash);
+};
+
+const generateCurveData = (crashPoint: number) => {
+    const data = [];
+    // Grow quickly at first, then slow down
+    for (let i = 0; i < 1000; i++) {
+        const time = i / 20; // Adjust for speed
+        const multiplier = 1 + (time * time) / 50;
+        if (multiplier >= crashPoint) {
+            data.push({ time, value: crashPoint });
+            break;
+        }
+        data.push({ time, value: multiplier });
+    }
+    return data;
+};
 
 export default function CrashGame() {
   const [gameState, setGameState] = useState<GameState>('idle');
@@ -18,69 +51,38 @@ export default function CrashGame() {
   const [autoCashout, setAutoCashout] = useState(2.0);
   const [multiplier, setMultiplier] = useState(1.0);
   const [chartData, setChartData] = useState<{ time: number; value: number }[]>([{ time: 0, value: 1 }]);
-  const [crashPoint, setCrashPoint] = useState(1.0);
   const [winnings, setWinnings] = useState(0);
 
+  const { balance, setBalance } = useBalance();
   const { toast } = useToast();
+  
   const animationFrameId = useRef<number>();
   const gameStartTime = useRef<number>();
   const fullCurveData = useRef<{ time: number; value: number }[]>([]);
+  const crashPoint = useRef<number>(1.0);
+  const gameStateRef = useRef(gameState);
+
+  useEffect(() => {
+    gameStateRef.current = gameState;
+  }, [gameState]);
+
 
   const resetGame = useCallback(() => {
+    if (animationFrameId.current) {
+      cancelAnimationFrame(animationFrameId.current);
+    }
     setGameState('idle');
     setMultiplier(1.0);
     setChartData([{ time: 0, value: 1 }]);
     setWinnings(0);
-    if (animationFrameId.current) {
-      cancelAnimationFrame(animationFrameId.current);
-    }
   }, []);
-
-  const runGame = useCallback((finalMultiplier: number) => {
-    gameStartTime.current = performance.now();
-    setGameState('running');
-    
-    const animate = (time: number) => {
-      const elapsedTime = (time - (gameStartTime.current ?? time)) / 1000;
-      const gameDuration = fullCurveData.current.length * 0.05;
-      
-      const progress = Math.min(elapsedTime / gameDuration, 1);
-      const currentIndex = Math.floor(progress * (fullCurveData.current.length - 1));
-      const currentMultiplier = fullCurveData.current[currentIndex].value;
-      
-      setMultiplier(currentMultiplier);
-      setChartData(fullCurveData.current.slice(0, currentIndex + 1));
-
-      if (autoCashout > 1 && currentMultiplier >= autoCashout && gameStateRef.current === 'running') {
-        handleCashout(autoCashout);
-        return;
-      }
-
-      if (currentMultiplier < finalMultiplier) {
-        animationFrameId.current = requestAnimationFrame(animate);
-      } else {
-        setMultiplier(finalMultiplier);
-        setGameState('crashed');
-        toast({
-          title: 'CRASHED!',
-          description: `The rocket crashed at ${finalMultiplier.toFixed(2)}x.`,
-          variant: 'destructive',
-        });
-      }
-    };
-    animationFrameId.current = requestAnimationFrame(animate);
-  }, [autoCashout]);
-
-  const gameStateRef = useRef(gameState);
-  useEffect(() => {
-    gameStateRef.current = gameState;
-  }, [gameState]);
 
   const handleCashout = useCallback((cashoutMultiplier: number) => {
       if (gameStateRef.current !== 'running') return;
       
       const wonAmount = betAmount * cashoutMultiplier;
       setWinnings(wonAmount);
+      setBalance(prev => prev + wonAmount);
       setGameState('cashed_out');
       toast({
         title: cashoutMultiplier === autoCashout ? 'Auto Cashed Out!' : 'Cashed Out!',
@@ -89,7 +91,49 @@ export default function CrashGame() {
       if (animationFrameId.current) {
         cancelAnimationFrame(animationFrameId.current);
       }
-  }, [betAmount, autoCashout]);
+  }, [betAmount, autoCashout, setBalance, toast]);
+
+  const runGame = useCallback(() => {
+    gameStartTime.current = performance.now();
+    setGameState('running');
+    
+    const animate = (time: number) => {
+      const elapsedTime = (time - (gameStartTime.current ?? time));
+      const finalTime = fullCurveData.current[fullCurveData.current.length-1].time * 1000;
+
+      let currentMultiplier: number;
+      if(elapsedTime >= finalTime) {
+        currentMultiplier = crashPoint.current;
+      } else {
+        const progress = elapsedTime / finalTime;
+        const currentIndex = Math.floor(progress * (fullCurveData.current.length - 1));
+        currentMultiplier = fullCurveData.current[currentIndex]?.value ?? 1.0;
+      }
+      
+      setMultiplier(currentMultiplier);
+      const dataIndex = Math.min(Math.floor((elapsedTime / finalTime) * fullCurveData.current.length), fullCurveData.current.length-1)
+      setChartData(fullCurveData.current.slice(0, dataIndex + 1));
+
+      if (autoCashout > 1 && currentMultiplier >= autoCashout && gameStateRef.current === 'running') {
+        handleCashout(autoCashout);
+        return;
+      }
+      
+      if (currentMultiplier < crashPoint.current) {
+        animationFrameId.current = requestAnimationFrame(animate);
+      } else {
+        setMultiplier(crashPoint.current);
+        setChartData(fullCurveData.current);
+        setGameState('crashed');
+        toast({
+          title: 'CRASHED!',
+          description: `The rocket crashed at ${crashPoint.current.toFixed(2)}x.`,
+          variant: 'destructive',
+        });
+      }
+    };
+    animationFrameId.current = requestAnimationFrame(animate);
+  }, [autoCashout, handleCashout, toast]);
 
 
   const startGameSequence = useCallback(async () => {
@@ -101,15 +145,14 @@ export default function CrashGame() {
       } else {
         clearInterval(countdownInterval);
         try {
-          const seed = Math.random().toString(36).substring(7);
-          const result = await generateCrashCurve({ seed });
-          if (!result.curveData || result.curveData.length < 2) throw new Error('Invalid curve data.');
+          const seed = Date.now() + Math.random();
+          crashPoint.current = generateCrashPoint(seed);
+          fullCurveData.current = generateCurveData(crashPoint.current);
           
-          const finalMultiplier = result.curveData[result.curveData.length - 1];
-          setCrashPoint(finalMultiplier);
-          fullCurveData.current = result.curveData.map((value, index) => ({ time: index, value }));
+          if (!fullCurveData.current || fullCurveData.current.length === 0) throw new Error('Invalid curve data.');
+
           toast({ title: 'GO!', description: 'The rocket is launching!' });
-          runGame(finalMultiplier);
+          runGame();
 
         } catch (error) {
            toast({ title: 'Error', description: 'Could not start game. Please try again.', variant: 'destructive' });
@@ -124,7 +167,12 @@ export default function CrashGame() {
       toast({ title: 'Invalid Bet', description: 'Bet must be greater than zero.', variant: 'destructive' });
       return;
     }
+     if (balance < betAmount) {
+      toast({ title: 'Insufficient balance', variant: 'destructive' });
+      return;
+    }
     resetGame();
+    setBalance(prev => prev - betAmount);
     setGameState('betting');
     startGameSequence();
   };
@@ -166,7 +214,7 @@ export default function CrashGame() {
                 </linearGradient>
               </defs>
               <YAxis domain={[1, 'dataMax + 1']} hide />
-              <XAxis dataKey="time" hide />
+              <XAxis dataKey="time" type="number" domain={['dataMin', 'dataMax']} hide />
               <Area type="monotone" dataKey="value" stroke="hsl(var(--primary))" fillOpacity={1} fill="url(#colorUv)" strokeWidth={3} dot={false} />
             </AreaChart>
           </ResponsiveContainer>
