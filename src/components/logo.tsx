@@ -9,7 +9,7 @@ type LogoProps = {
 export default function Logo({ className, showIcon = true }: LogoProps) {
   return (
     <div className="flex items-center gap-2">
-      {showIcon && <Gem className="text-primary" />}
+      {showIcon && <Gem className="h-7 w-7 text-primary" />}
       <h1 className={cn('font-headline font-bold tracking-tight', className)}>
         Blatna<span className="text-accent">я</span> Family
       </h1>

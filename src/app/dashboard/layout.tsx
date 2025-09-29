@@ -12,20 +12,10 @@ import {
   LogOut,
   Bomb,
   Wallet,
+  Coins,
+  CircleDollarSign
 } from "lucide-react";
 import Logo from "@/components/logo";
-import {
-  SidebarProvider,
-  Sidebar,
-  SidebarHeader,
-  SidebarContent,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
-  SidebarFooter,
-  SidebarTrigger,
-  SidebarInset,
-} from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -36,6 +26,25 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+
 
 const menuItems = [
   { href: "/dashboard", label: "Lobby", icon: LayoutGrid },
@@ -43,26 +52,95 @@ const menuItems = [
   { href: "/dashboard/roulette", label: "Roulette", icon: Dice5 },
   { href: "/dashboard/crash", label: "Crash", icon: Rocket },
   { href: "/dashboard/mines", label: "Mines", icon: Bomb },
+  { href: "/dashboard/coin-flip", label: "Coin Flip", icon: Coins },
 ];
 
-function TopNav() {
+
+function DepositDialog({ balance, setBalance }: { balance: number, setBalance: (balance: number) => void}) {
+    const [amount, setAmount] = useState(100);
+    const { toast } = useToast();
+
+    const handleDeposit = () => {
+        setBalance(balance + amount);
+        toast({
+            title: "Deposit Successful",
+            description: `You have added $${amount.toFixed(2)} to your balance.`,
+        });
+    }
+
     return (
-        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm sm:px-6">
+        <Dialog>
+            <DialogTrigger asChild>
+                <Button variant="outline" className="h-auto">
+                    <CircleDollarSign className="h-5 w-5 text-primary" />
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                    <DialogTitle>Make a Deposit</DialogTitle>
+                    <DialogDescription>
+                        Enter the amount you would like to deposit into your account.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="amount" className="text-right">
+                            Amount
+                        </Label>
+                        <Input
+                            id="amount"
+                            type="number"
+                            value={amount}
+                            onChange={(e) => setAmount(Number(e.target.value))}
+                            className="col-span-3"
+                        />
+                    </div>
+                </div>
+                <Button onClick={handleDeposit} type="submit">Deposit</Button>
+            </DialogContent>
+        </Dialog>
+    )
+}
+
+
+function TopNav({balance, setBalance}: {balance: number, setBalance: (balance: number) => void}) {
+    const pathname = usePathname();
+
+    return (
+        <header className="sticky top-0 z-10 flex h-20 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm sm:px-6">
             <div className="flex items-center gap-4">
-                 <SidebarTrigger className="md:hidden" />
-                <h1 className="hidden font-headline text-2xl font-bold tracking-tight text-foreground md:block">
-                    { menuItems.find(item => item.href === usePathname())?.label }
-                </h1>
+               <Logo className="text-2xl" showIcon={false} />
+            </div>
+            <div className="flex flex-grow justify-center">
+                <TooltipProvider>
+                     <nav className="flex items-center gap-2 rounded-full border bg-card p-2">
+                        {menuItems.map((item) => (
+                            <Tooltip key={item.href}>
+                                <TooltipTrigger asChild>
+                                     <Button asChild variant={pathname === item.href ? 'primary' : 'ghost'} className="h-11 w-11 rounded-full">
+                                         <Link href={item.href}>
+                                            <item.icon className="h-5 w-5" />
+                                        </Link>
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>{item.label}</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        ))}
+                    </nav>
+                </TooltipProvider>
             </div>
             <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2 rounded-full border bg-card px-3 py-1.5 text-sm font-medium">
-                    <Wallet className="h-4 w-4 text-primary" />
-                    <span>$1,000.00</span>
+                <div className="flex items-center gap-2 rounded-full border bg-card px-4 py-2 text-md font-medium">
+                    <Wallet className="h-5 w-5 text-primary" />
+                    <span>${balance.toFixed(2)}</span>
                 </div>
+                <DepositDialog balance={balance} setBalance={setBalance} />
                  <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="h-auto rounded-full p-0">
-                             <Avatar className="h-9 w-9">
+                             <Avatar className="h-11 w-11 border-2 border-primary/50">
                                 <AvatarImage src="https://picsum.photos/seed/user/100/100" />
                                 <AvatarFallback>BF</AvatarFallback>
                             </Avatar>
@@ -98,38 +176,12 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const pathname = usePathname();
+    const [balance, setBalance] = useState(1000);
 
   return (
-    <SidebarProvider>
-      <Sidebar>
-        <SidebarHeader>
-          <div className="flex items-center gap-2">
-            <Logo className="text-xl" />
-          </div>
-        </SidebarHeader>
-        <SidebarContent>
-          <SidebarMenu>
-            {menuItems.map((item) => (
-              <SidebarMenuItem key={item.href}>
-                <Link href={item.href}>
-                  <SidebarMenuButton
-                    isActive={pathname === item.href}
-                    tooltip={item.label}
-                  >
-                    <item.icon />
-                    <span>{item.label}</span>
-                  </SidebarMenuButton>
-                </Link>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-        </SidebarContent>
-      </Sidebar>
-      <SidebarInset>
-        <TopNav />
+    <div className="flex min-h-screen w-full flex-col">
+        <TopNav balance={balance} setBalance={setBalance}/>
         {children}
-      </SidebarInset>
-    </SidebarProvider>
+    </div>
   );
 }
