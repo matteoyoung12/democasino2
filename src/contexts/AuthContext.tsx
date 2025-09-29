@@ -1,33 +1,29 @@
-
-"use client";
-
-import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-import { useRouter } from 'next/navigation';
-import { auth, db } from '@/lib/firebase'; // Assuming you have firebase initialized here
-import { doc, setDoc } from 'firebase/firestore';
+'use client';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { 
-    onAuthStateChanged,
-    createUserWithEmailAndPassword,
-    signInWithEmailAndPassword,
-    signOut,
-    User,
-    updateProfile
+  User, 
+  signOut, 
+  onAuthStateChanged, 
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  updateProfile
 } from 'firebase/auth';
+import { auth, db } from '@/lib/firebase';
+import { doc, setDoc } from 'firebase/firestore';
 
-type AuthContextType = {
+interface AuthContextType {
   user: User | null;
+  signup: (email: string, password: string, displayName: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
   loading: boolean;
-  signup: (email: string, password: string, displayName: string) => Promise<any>;
-  login: (email: string, password: string) => Promise<any>;
-  logout: () => Promise<any>;
-};
+}
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -39,45 +35,63 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const signup = async (email: string, password: string, displayName: string) => {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
-    if (user) {
-        await updateProfile(user, { displayName });
-        // Create a document in Firestore for the new user
-        await setDoc(doc(db, "users", user.uid), {
-            uid: user.uid,
-            displayName: displayName,
-            email: user.email,
-            createdAt: new Date(),
-        });
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      
+      await updateProfile(userCredential.user, {
+        displayName: displayName
+      });
+
+      await setDoc(doc(db, 'users', userCredential.user.uid), {
+        uid: userCredential.user.uid,
+        displayName,
+        email,
+        createdAt: new Date()
+      });
+
+    } catch (error: any) {
+      console.error('Sign up error:', error);
+      throw error;
     }
-    return userCredential;
   };
 
-  const login = (email: string, password: string) => {
-    return signInWithEmailAndPassword(auth, email, password);
+  const login = async (email: string, password: string) => {
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (error: any) {
+      console.error('Sign in error:', error);
+      throw error;
+    }
   };
 
-  const logout = () => {
-    router.push('/');
-    return signOut(auth);
+  const logout = async () => {
+    try {
+      await signOut(auth);
+    } catch (error: any) {
+      console.error('Logout error:', error);
+      throw error;
+    }
   };
-  
+
   const value = {
     user,
-    loading,
     signup,
     login,
     logout,
+    loading
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-};
+  return (
+    <AuthContext.Provider value={value}>
+      {!loading && children}
+    </AuthContext.Provider>
+  );
+}
 
-export const useAuth = () => {
+export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-};
+}
