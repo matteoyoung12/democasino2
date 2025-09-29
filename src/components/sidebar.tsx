@@ -31,9 +31,25 @@ import { translations } from "@/lib/translations";
 import { cn } from "@/lib/utils";
 
 
+const RouletteIcon = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <circle cx="12" cy="12" r="1" />
+        <path d="M12 2v4" />
+        <path d="M12 18v4" />
+        <path d="m22 12-4 0" />
+        <path d="m6 12-4 0" />
+        <path d="m19.78 4.22-3 3" />
+        <path d="m7.22 16.78-3-3" />
+        <path d="m4.22 4.22 3 3" />
+        <path d="m16.78 16.78 3 3" />
+    </svg>
+);
+
+
 const gameItems = [
   { href: "/dashboard/slots", labelKey: "slots", icon: Gem },
-  { href: "/dashboard/roulette", labelKey: "roulette", icon: "https://example.com/roulette.svg" }, // Needs custom SVG
+  { href: "/dashboard/roulette", labelKey: "roulette", icon: RouletteIcon },
   { href: "/dashboard/crash", labelKey: "crash", icon: Rocket },
   { href: "/dashboard/mines", labelKey: "mines", icon: Bomb },
   { href: "/dashboard/coin-flip", labelKey: "coin_flip", icon: Coins },
