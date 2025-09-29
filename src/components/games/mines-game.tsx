@@ -25,6 +25,10 @@ type GameState = 'betting' | 'playing' | 'busted';
 
 const GRID_SIZE = 25;
 
+const createInitialGrid = (): Tile[] => {
+    return Array(GRID_SIZE).fill(null).map(() => ({ isMine: false, isRevealed: false }));
+}
+
 export default function MinesGame() {
   const [gameState, setGameState] = useState<GameState>('betting');
   const [grid, setGrid] = useState<Tile[]>([]);
@@ -35,6 +39,10 @@ export default function MinesGame() {
   const [nextMultiplier, setNextMultiplier] = useState(1.0);
 
   const { toast } = useToast();
+
+  useEffect(() => {
+    setGrid(createInitialGrid());
+  }, []);
 
   const calculateMultiplier = (gemsFound: number, mines: number) => {
     const totalTiles = GRID_SIZE;
@@ -106,6 +114,9 @@ export default function MinesGame() {
   }
 
   const renderGrid = () => {
+    if (grid.length === 0) {
+        return Array(GRID_SIZE).fill(0).map((_, i) => <div key={i} className="aspect-square rounded-lg bg-card/50" />);
+    }
     return grid.map((tile, index) => (
       <button
         key={index}
@@ -155,7 +166,10 @@ export default function MinesGame() {
           )}
 
           {gameState === 'busted' && (
-             <Button onClick={() => setGameState('betting')} size="lg" className="h-16 w-full text-xl">
+             <Button onClick={() => {
+                setGameState('betting');
+                setGrid(createInitialGrid());
+             }} size="lg" className="h-16 w-full text-xl">
                 <Play className="mr-2"/> Play Again
             </Button>
           )}
