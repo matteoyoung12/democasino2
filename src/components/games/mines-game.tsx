@@ -132,7 +132,7 @@ export default function MinesGame() {
         className={cn(
           'aspect-square rounded-lg flex items-center justify-center transition-all duration-300 transform hover:scale-105',
           {
-            'bg-card/50 hover:bg-primary/20': !tile.isRevealed,
+            'bg-primary/10 hover:bg-primary/20': !tile.isRevealed,
             'bg-green-500/20 border border-green-500': tile.isRevealed && !tile.isMine,
             'bg-red-500/20 border border-red-500 animate-pulse': tile.isRevealed && tile.isMine,
             'cursor-not-allowed': gameState !== 'playing' || tile.isRevealed,
@@ -150,9 +150,9 @@ export default function MinesGame() {
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 w-full">
-      <div className="lg:col-span-2 grid grid-cols-5 gap-2.5 p-4 bg-card rounded-lg">
+      <div className="lg:col-span-2 grid grid-cols-5 gap-4 p-4 bg-card rounded-lg">
         {gameState === 'betting' 
-         ? Array(GRID_SIZE).fill(0).map((_, i) => <div key={i} className="aspect-square rounded-lg bg-card/50" />)
+         ? Array(GRID_SIZE).fill(0).map((_, i) => <div key={i} className="aspect-square rounded-lg bg-primary/10" />)
          : renderGrid()
         }
       </div>
