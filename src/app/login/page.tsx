@@ -31,9 +31,10 @@ export default function LoginPage() {
       await login(email, password);
       router.push('/dashboard');
     } catch (error: any) {
+      console.error("Login error details:", error);
       toast({
         title: 'Login Failed',
-        description: error.message,
+        description: `Error: ${error.message}`,
         variant: 'destructive',
       });
     }
