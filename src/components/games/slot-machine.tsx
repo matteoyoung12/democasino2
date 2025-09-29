@@ -21,29 +21,14 @@ const payoutTable = {
     5: 15,
 };
 
-const Reel = ({ finalSymbols, isSpinning, reelIndex }: { finalSymbols: number[], isSpinning: boolean, reelIndex: number }) => {
-    const symbolHeight = 64; // h-16
-    const spinDuration = 1000 + reelIndex * 150;
-
-    const getSymbol = (index: number) => allSymbols[index] || allSymbols[0];
-
-    return (
-        <div className="h-[320px] w-16 overflow-hidden bg-card/50 rounded-lg border-2 border-primary/50">
-            <div
-                className="flex flex-col items-center justify-start"
-                style={{
-                    transform: isSpinning ? `translateY(-${allSymbols.length * symbolHeight * 2}px)` : `translateY(0px)`,
-                    transition: `transform ${spinDuration}ms cubic-bezier(0.25, 1, 0.5, 1)`,
-                }}
-            >
-                {[...Array(allSymbols.length * 3)].map((_, i) => {
-                    const Symbol = getSymbol(isSpinning ? i % allSymbols.length : finalSymbols[i % finalSymbols.length]);
-
-                    return <Symbol key={i} className="h-16 w-16 shrink-0 p-2 text-primary" />
-                })}
-            </div>
-        </div>
-    );
+// Function to generate a symbol, making scatter rare
+const getRandomSymbol = () => {
+    // 1 in 25 chance for a scatter symbol
+    const isScatter = Math.random() < 1 / 25; 
+    if (isScatter) {
+        return allSymbols.indexOf(scatterSymbol);
+    }
+    return Math.floor(Math.random() * symbols.length);
 };
 
 
@@ -78,7 +63,7 @@ export default function SlotMachine() {
         setSpinning(true);
 
         const newGrid = Array(5).fill(0).map(() =>
-            Array(5).fill(0).map(() => Math.floor(Math.random() * allSymbols.length))
+            Array(5).fill(0).map(() => getRandomSymbol())
         );
 
         setTimeout(() => {

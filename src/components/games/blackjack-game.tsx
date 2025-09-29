@@ -8,7 +8,7 @@ import { useBalance } from '@/contexts/BalanceContext';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Hand, Play, Wallet } from 'lucide-react';
+import { Play, Wallet } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type Suit = 'H' | 'D' | 'C' | 'S';
@@ -26,12 +26,6 @@ const createDeck = (): CardType[] => {
 
 const shuffleDeck = (deck: CardType[]): CardType[] => {
     return deck.sort(() => Math.random() - 0.5);
-}
-
-const getCardValue = (card: CardType, currentScore: number): number => {
-    if (['J', 'Q', 'K'].includes(card.rank)) return 10;
-    if (card.rank === 'A') return currentScore + 11 > 21 ? 1 : 11;
-    return parseInt(card.rank);
 }
 
 const getHandScore = (hand: HandType): number => {
@@ -54,22 +48,41 @@ const getHandScore = (hand: HandType): number => {
     return score;
 }
 
-const CardComponent = ({ card, hidden }: { card?: CardType, hidden?: boolean }) => {
+const CardComponent = ({ card, hidden, isPlayer, cardIndex }: { card?: CardType, hidden?: boolean, isPlayer?: boolean, cardIndex: number }) => {
+    const animationDelay = `${cardIndex * 100}ms`;
+    const transformStyle = isPlayer 
+        ? `translateX(-${cardIndex * 30}px)` 
+        : `translateX(-${cardIndex * 30}px)`;
+
     if (hidden) {
-        return <div className="w-24 h-36 bg-blue-700 rounded-lg border-2 border-blue-900"></div>;
+        return (
+             <div 
+                className="w-24 h-36 bg-blue-700 rounded-lg border-2 border-blue-900 absolute"
+                style={{ animation: `dealCard 0.5s ease-out forwards`, animationDelay, left: '50%', transform: 'translateX(-50%)' }}
+            ></div>
+        );
     }
     if (!card) {
-        return <div className="w-24 h-36 bg-transparent rounded-lg"></div>;
+        return <div className="w-24 h-36 bg-transparent rounded-lg absolute"></div>;
     }
 
     const suitSymbols = { H: '♥', D: '♦', C: '♣', S: '♠' };
     const suitColor = ['H', 'D'].includes(card.suit) ? 'text-red-500' : 'text-black';
 
     return (
-        <div className="w-24 h-36 bg-white rounded-lg p-2 flex flex-col justify-between border-2 border-gray-300 shadow-md">
-            <div className={`text-2xl font-bold ${suitColor}`}>{card.rank}</div>
-            <div className={`text-4xl text-center ${suitColor}`}>{suitSymbols[card.suit]}</div>
-            <div className={`text-2xl font-bold self-end transform rotate-180 ${suitColor}`}>{card.rank}</div>
+        <div 
+            className="w-24 h-36 bg-white rounded-lg p-2 flex flex-col justify-between border-2 border-gray-300 shadow-lg absolute"
+            style={{ 
+                animation: `dealCard 0.5s ease-out forwards`,
+                animationDelay,
+                left: '50%', 
+                transform: `translateX(-50%)`,
+                transition: 'transform 0.3s'
+            }}
+        >
+            <div className={`text-xl font-bold ${suitColor}`}>{card.rank}</div>
+            <div className={`text-3xl text-center ${suitColor}`}>{suitSymbols[card.suit]}</div>
+            <div className={`text-xl font-bold self-end transform rotate-180 ${suitColor}`}>{card.rank}</div>
         </div>
     );
 };
@@ -107,7 +120,8 @@ export default function BlackjackGame() {
         setMessage('');
 
         if (getHandScore(playerInitialHand) === 21) {
-            endGame(playerInitialHand, dealerInitialHand, newDeck);
+            // Player has Blackjack
+            setTimeout(() => endGame(playerInitialHand, dealerInitialHand, newDeck), 500);
         }
     }
 
@@ -121,7 +135,7 @@ export default function BlackjackGame() {
         setPlayerHand(newHand);
 
         if (getHandScore(newHand) > 21) {
-            endGame(newHand, dealerHand, newDeck);
+            setTimeout(() => endGame(newHand, dealerHand, newDeck), 500);
         }
     }
 
@@ -140,7 +154,9 @@ export default function BlackjackGame() {
             let hand = [...currentDealerHand];
             let d = [...deck];
             while(getHandScore(hand) < 17) {
-                hand.push(d.pop()!);
+                const newCard = d.pop();
+                if(newCard) hand.push(newCard);
+                else break;
             }
             return { finalHand: hand, finalDeck: d };
         };
@@ -164,6 +180,10 @@ export default function BlackjackGame() {
                 resultMessage = `Dealer Busted with ${dScore}! You win!`;
                 setBalance(prev => prev + betAmount * 2);
                 toast({ title: "You Win!", description: resultMessage });
+            } else if (pScore === 21 && finalPlayerHand.length === 2) {
+                 resultMessage = `Blackjack! You win!`;
+                setBalance(prev => prev + betAmount * 2.5); // Blackjack payout 3:2
+                toast({ title: "Blackjack!", description: resultMessage });
             } else if (pScore > dScore) {
                 resultMessage = `You Win with ${pScore} to ${dScore}!`;
                 setBalance(prev => prev + betAmount * 2);
@@ -188,38 +208,51 @@ export default function BlackjackGame() {
         }
     }, [playerHand, dealerHand, gameState]);
 
-    const HandDisplay = ({ hand, title, score, isDealer, isTurn }: { hand: HandType, title: string, score: number, isDealer?: boolean, isTurn?: boolean }) => (
-        <div className="flex flex-col items-center gap-4">
-            <h2 className="text-2xl font-bold">{title} - Score: {score}</h2>
-            <div className="flex gap-2 min-h-[144px]">
-                {hand.map((card, index) => (
-                    <CardComponent key={index} card={card} hidden={isDealer && index === 1 && gameState === 'playing'} />
-                ))}
+    const HandDisplay = ({ hand, title, score, isDealer }: { hand: HandType, title: string, score: number, isDealer?: boolean }) => (
+        <div className="flex flex-col items-center gap-4 w-full">
+            <h2 className="text-2xl font-bold text-white drop-shadow-lg">{title} - Score: {score}</h2>
+            <div className="relative h-40 w-full flex justify-center items-center">
+                {hand.map((card, index) => {
+                    const isHidden = isDealer && index === 1 && gameState === 'playing';
+                    return <CardComponent 
+                                key={index} 
+                                card={card} 
+                                hidden={isHidden} 
+                                isPlayer={!isDealer} 
+                                cardIndex={index} 
+                           />
+                })}
             </div>
         </div>
     );
     
     return (
         <div className="flex flex-col items-center gap-4 w-full">
-            <Card className="w-full">
+             <style jsx>{`
+                @keyframes dealCard {
+                    from { transform: translateY(-200px) translateX(-50%) rotate(0deg); opacity: 0; }
+                    to { transform: translateY(0) translateX(calc(-50% + ${Math.random() * 20 - 10}px)) rotate(${Math.random() * 10 - 5}deg); opacity: 1; }
+                }
+            `}</style>
+            <Card className="w-full bg-green-700/70 border-green-900/50 shadow-2xl">
                 <CardHeader>
-                    <CardTitle className="text-center">Blackjack</CardTitle>
+                    <CardTitle className="text-center text-white font-headline text-4xl drop-shadow-md">Blackjack</CardTitle>
                 </CardHeader>
-                <CardContent className="flex flex-col items-center gap-6">
-                    <HandDisplay hand={dealerHand} title="Dealer's Hand" score={dealerScore} isDealer />
+                <CardContent className="flex flex-col items-center gap-6 min-h-[500px] justify-around">
+                    <HandDisplay hand={dealerHand} title="Dealer's Hand" score={gameState === 'playing' ? getHandScore(dealerHand.slice(0,1)) : getHandScore(dealerHand)} isDealer />
                     
-                    <div className="h-4 text-xl font-bold text-primary">{message}</div>
+                    <div className="h-10 text-xl font-bold text-white bg-black/30 rounded-lg px-4 py-2 flex items-center justify-center">{message}</div>
 
-                    <HandDisplay hand={playerHand} title="Your Hand" score={playerScore} />
+                    <HandDisplay hand={playerHand} title="Your Hand" score={getHandScore(playerHand)} />
                 </CardContent>
-                <CardFooter className="flex flex-col gap-4">
+                <CardFooter className="flex flex-col gap-4 bg-black/20 p-4">
                      {gameState === 'betting' && (
-                        <div className="flex flex-col items-center gap-4">
-                             <div className="grid gap-2">
-                                <Label htmlFor="bet-amount" className="flex items-center gap-2"><Wallet />Bet Amount</Label>
-                                <Input id="bet-amount" type="number" value={betAmount} onChange={(e) => setBetAmount(parseFloat(e.target.value) || 0)} />
+                        <div className="flex flex-col items-center gap-4 w-full max-w-sm mx-auto">
+                             <div className="grid gap-2 w-full">
+                                <Label htmlFor="bet-amount" className="flex items-center gap-2 text-white"><Wallet />Bet Amount</Label>
+                                <Input id="bet-amount" type="number" value={betAmount} onChange={(e) => setBetAmount(parseFloat(e.target.value) || 0)} className="bg-white/90 text-black"/>
                             </div>
-                            <Button onClick={deal} size="lg" className="h-16 w-full text-xl"><Play className="mr-2"/>Deal</Button>
+                            <Button onClick={deal} size="lg" className="h-14 w-full text-xl"><Play className="mr-2"/>Deal</Button>
                         </div>
                     )}
                     {gameState === 'playing' && (
@@ -238,7 +271,7 @@ export default function BlackjackGame() {
                             Play Again
                         </Button>
                     )}
-                    {(gameState === 'dealer' || gameState === 'playing') && <div className="h-16"/>}
+                    {(gameState === 'dealer' || gameState === 'playing' || gameState === 'finished') && <div className="h-16"/>}
                 </CardFooter>
             </Card>
         </div>
