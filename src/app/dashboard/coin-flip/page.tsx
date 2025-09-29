@@ -1,3 +1,4 @@
+
 import CoinFlipGame from '@/components/games/coin-flip-game';
 
 export default function CoinFlipPage() {

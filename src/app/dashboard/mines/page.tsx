@@ -1,4 +1,5 @@
 
+
 import MinesGame from '@/components/games/mines-game';
 
 export default function MinesPage() {

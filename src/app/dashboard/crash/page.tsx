@@ -1,3 +1,4 @@
+
 import CrashGame from '@/components/games/crash-game';
 
 export default function CrashPage() {

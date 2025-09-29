@@ -1,3 +1,4 @@
+
 import SlotMachine from '@/components/games/slot-machine';
 
 export default function SlotsPage() {
