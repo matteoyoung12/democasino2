@@ -7,11 +7,11 @@ import Logo from '@/components/logo';
 
 export default function SignupPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <Card className="mx-auto w-full max-w-sm">
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <Card className="mx-auto w-full max-w-sm border-primary/20 shadow-lg shadow-primary/10">
         <CardHeader className="text-center">
           <Logo className="mx-auto mb-2 text-3xl" />
-          <CardTitle className="text-2xl">Sign Up</CardTitle>
+          <CardTitle className="font-headline text-2xl">Sign Up</CardTitle>
           <CardDescription>Create your account to start playing</CardDescription>
         </CardHeader>
         <CardContent>
@@ -34,13 +34,13 @@ export default function SignupPage() {
               <Label htmlFor="password">Password</Label>
               <Input id="password" type="password" required />
             </div>
-            <Button asChild type="submit" className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
+            <Button asChild type="submit" className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
               <Link href="/dashboard">Create an account</Link>
             </Button>
           </div>
           <div className="mt-4 text-center text-sm">
             Already have an account?{' '}
-            <Link href="/login" className="underline">
+            <Link href="/login" className="font-medium text-primary hover:underline">
               Login
             </Link>
           </div>

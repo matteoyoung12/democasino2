@@ -112,11 +112,11 @@ export default function MinesGame() {
         onClick={() => handleTileClick(index)}
         disabled={gameState !== 'playing'}
         className={cn(
-          'aspect-square rounded-lg flex items-center justify-center transition-all duration-300',
+          'aspect-square rounded-lg flex items-center justify-center transition-all duration-300 transform hover:scale-105',
           {
-            'bg-card/50 hover:bg-card/80': !tile.isRevealed,
-            'bg-green-500/20': tile.isRevealed && !tile.isMine,
-            'bg-red-500/20 animate-pulse': tile.isRevealed && tile.isMine,
+            'bg-card/50 hover:bg-primary/20': !tile.isRevealed,
+            'bg-green-500/20 border border-green-500': tile.isRevealed && !tile.isMine,
+            'bg-red-500/20 border border-red-500 animate-pulse': tile.isRevealed && tile.isMine,
             'cursor-not-allowed': gameState !== 'playing',
           }
         )}
@@ -145,7 +145,7 @@ export default function MinesGame() {
         </CardHeader>
         <CardContent className="grid gap-4">
           {gameState === 'betting' ? (
-             <Button onClick={startGame} size="lg" className="h-16 w-full text-xl bg-accent text-accent-foreground hover:bg-accent/90">
+             <Button onClick={startGame} size="lg" className="h-16 w-full text-xl bg-primary text-primary-foreground hover:bg-primary/90">
                 <Play className="mr-2"/> Place Bet
             </Button>
           ) : (
@@ -179,9 +179,9 @@ export default function MinesGame() {
           </div>
         </CardContent>
         {gameState === 'playing' && (
-            <CardFooter className="flex-col items-start">
-                <p>Gems Found: <span className="font-bold text-accent">{revealedGems}</span></p>
-                <p>Current Multiplier: <span className="font-bold text-accent">{currentMultiplier.toFixed(2)}x</span></p>
+            <CardFooter className="flex-col items-start gap-1">
+                <p>Gems Found: <span className="font-bold text-primary">{revealedGems}</span></p>
+                <p>Current Multiplier: <span className="font-bold text-primary">{currentMultiplier.toFixed(2)}x</span></p>
                 <p>Next Multiplier: <span className="font-bold text-green-500">{nextMultiplier.toFixed(2)}x</span></p>
             </CardFooter>
         )}

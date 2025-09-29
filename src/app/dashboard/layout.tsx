@@ -11,6 +11,7 @@ import {
   Settings,
   LogOut,
   Bomb,
+  Wallet,
 } from "lucide-react";
 import Logo from "@/components/logo";
 import {
@@ -44,6 +45,54 @@ const menuItems = [
   { href: "/dashboard/mines", label: "Mines", icon: Bomb },
 ];
 
+function TopNav() {
+    return (
+        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm sm:px-6">
+            <div className="flex items-center gap-4">
+                 <SidebarTrigger className="md:hidden" />
+                <h1 className="hidden font-headline text-2xl font-bold tracking-tight text-foreground md:block">
+                    { menuItems.find(item => item.href === usePathname())?.label }
+                </h1>
+            </div>
+            <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 rounded-full border bg-card px-3 py-1.5 text-sm font-medium">
+                    <Wallet className="h-4 w-4 text-primary" />
+                    <span>$1,000.00</span>
+                </div>
+                 <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-auto rounded-full p-0">
+                             <Avatar className="h-9 w-9">
+                                <AvatarImage src="https://picsum.photos/seed/user/100/100" />
+                                <AvatarFallback>BF</AvatarFallback>
+                            </Avatar>
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56">
+                        <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem>
+                            <User className="mr-2 h-4 w-4" />
+                            <span>Profile</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem>
+                            <Settings className="mr-2 h-4 w-4" />
+                            <span>Settings</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem asChild>
+                            <Link href="/">
+                                <LogOut className="mr-2 h-4 w-4" />
+                                <span>Log out</span>
+                            </Link>
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
+        </header>
+    );
+}
+
 export default function DashboardLayout({
   children,
 }: {
@@ -57,7 +106,6 @@ export default function DashboardLayout({
         <SidebarHeader>
           <div className="flex items-center gap-2">
             <Logo className="text-xl" />
-            <SidebarTrigger className="ml-auto" />
           </div>
         </SidebarHeader>
         <SidebarContent>
@@ -77,45 +125,9 @@ export default function DashboardLayout({
             ))}
           </SidebarMenu>
         </SidebarContent>
-        <SidebarFooter>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-auto w-full justify-start p-2">
-                    <div className="flex w-full items-center gap-2">
-                        <Avatar className="h-8 w-8">
-                            <AvatarImage src="https://picsum.photos/seed/user/100/100" />
-                            <AvatarFallback>BF</AvatarFallback>
-                        </Avatar>
-                        <div className="flex flex-col items-start text-sm group-data-[collapsible=icon]:hidden">
-                            <span className="font-semibold text-sidebar-foreground">Blatnaя User</span>
-                            <span className="text-xs text-sidebar-foreground/70">user@example.com</span>
-                        </div>
-                    </div>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent side="right" align="start" className="w-56">
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <User className="mr-2 h-4 w-4" />
-                <span>Profile</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Settings className="mr-2 h-4 w-4" />
-                <span>Settings</span>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link href="/">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Log out</span>
-                </Link>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </SidebarFooter>
       </Sidebar>
       <SidebarInset>
+        <TopNav />
         {children}
       </SidebarInset>
     </SidebarProvider>

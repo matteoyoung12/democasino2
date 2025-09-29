@@ -97,7 +97,7 @@ export default function RouletteGame() {
 
   return (
     <div className="flex flex-col items-center gap-8 w-full max-w-4xl">
-      <div className="relative flex items-center justify-center w-48 h-48 rounded-full border-4 border-accent shadow-lg">
+      <div className="relative flex items-center justify-center w-48 h-48 rounded-full border-4 border-primary shadow-lg">
         <Circle className={cn("absolute w-full h-full text-card animate-spin", spinning ? "duration-500" : "duration-[20000ms]")}/>
         <div className={cn("absolute w-40 h-40 rounded-full flex items-center justify-center text-5xl font-bold text-white", displayNumber !== null ? getNumberColor(displayNumber) : 'bg-card')}>
           {displayNumber !== null ? displayNumber : '?'}
@@ -109,28 +109,28 @@ export default function RouletteGame() {
           {numbers.slice(1).map(num => (
             <button key={num} onClick={() => placeBet('number', num)} disabled={spinning} className={cn("h-12 w-full rounded-md text-white font-bold flex items-center justify-center relative transition-transform hover:scale-105", getNumberColor(num))}>
               {num}
-              {bets.find(b => b.value === num) && <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-accent/70 border-2 border-accent-foreground text-accent-foreground text-xs flex items-center justify-center">{bets.find(b => b.value === num)?.amount}</div>}
+              {bets.find(b => b.value === num) && <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-primary/70 border-2 border-primary-foreground text-primary-foreground text-xs flex items-center justify-center">{bets.find(b => b.value === num)?.amount}</div>}
             </button>
           ))}
         </div>
          <button onClick={() => placeBet('number', 0)} disabled={spinning} className={cn("mt-1 h-12 w-1/4 rounded-md text-white font-bold flex items-center justify-center relative transition-transform hover:scale-105", getNumberColor(0))}>
             0
-            {bets.find(b => b.value === 0) && <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-accent/70 border-2 border-accent-foreground text-accent-foreground text-xs flex items-center justify-center">{bets.find(b => b.value === 0)?.amount}</div>}
+            {bets.find(b => b.value === 0) && <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-primary/70 border-2 border-primary-foreground text-primary-foreground text-xs flex items-center justify-center">{bets.find(b => b.value === 0)?.amount}</div>}
           </button>
       </div>
 
       <div className="flex flex-col sm:flex-row items-center gap-4 w-full p-4 bg-card rounded-lg">
-        <div className="text-lg">Balance: <span className="font-bold text-accent">{balance.toFixed(2)}</span></div>
+        <div className="text-lg">Balance: <span className="font-bold text-primary">{balance.toFixed(2)}</span></div>
         <div className="flex-grow" />
         <div className="flex items-center gap-2">
             <span className="text-lg">Bet:</span>
             {[1, 5, 10, 25, 100].map(amount => (
-                <Button key={amount} variant={betAmount === amount ? 'default' : 'outline'} onClick={() => setBetAmount(amount)} disabled={spinning} className={betAmount === amount ? 'bg-primary' : ''}>
+                <Button key={amount} variant={betAmount === amount ? 'secondary' : 'outline'} onClick={() => setBetAmount(amount)} disabled={spinning} className={betAmount === amount ? 'bg-primary' : ''}>
                     {amount}
                 </Button>
             ))}
         </div>
-        <Button onClick={spinWheel} disabled={spinning || bets.length === 0} size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90">
+        <Button onClick={spinWheel} disabled={spinning || bets.length === 0} size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90">
           <Play className="mr-2 h-5 w-5"/>
           Spin
         </Button>

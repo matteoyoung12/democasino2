@@ -136,14 +136,14 @@ export default function CrashGame() {
       case 'betting':
         return <Button disabled size="lg" className="h-16 w-full text-xl">Starting...</Button>;
       default:
-        return <Button onClick={handleBet} size="lg" className="h-16 w-full bg-accent text-xl text-accent-foreground hover:bg-accent/90"><Play className="mr-2" />Place Bet</Button>;
+        return <Button onClick={handleBet} size="lg" className="h-16 w-full bg-primary text-xl text-primary-foreground hover:bg-primary/90"><Play className="mr-2" />Place Bet</Button>;
     }
   };
 
   const getMultiplierColor = () => {
     if (gameState === 'crashed') return 'text-destructive';
     if (gameState === 'cashed_out') return 'text-green-500';
-    return 'text-accent';
+    return 'text-primary';
   };
 
   return (

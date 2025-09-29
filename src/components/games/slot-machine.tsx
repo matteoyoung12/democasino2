@@ -33,7 +33,7 @@ const Reel = ({ symbols, finalSymbolIndex, isSpinning }: { symbols: ElementType[
     <div className="h-32 w-32 overflow-hidden bg-card/50 rounded-lg border-2 border-primary/50">
       <div ref={reelRef} className="flex flex-col items-center justify-center">
         {extendedSymbols.map((Symbol, index) => (
-          <Symbol key={index} className="h-32 w-32 shrink-0 p-4 text-accent" />
+          <Symbol key={index} className="h-32 w-32 shrink-0 p-4 text-primary" />
         ))}
       </div>
     </div>
@@ -81,7 +81,7 @@ export default function SlotMachine() {
   return (
     <div className="flex flex-col items-center gap-8">
       <div className={cn(
-          "grid grid-cols-3 gap-4 p-6 rounded-xl bg-card border-4 border-accent shadow-2xl shadow-primary/20",
+          "grid grid-cols-3 gap-4 p-6 rounded-xl bg-card border-4 border-primary shadow-2xl shadow-primary/20",
           winnings !== null && "animate-pulse"
         )}>
         {reels.map((reelSymbols, reelIndex) => (
@@ -100,9 +100,9 @@ export default function SlotMachine() {
 
       <div className="flex flex-col items-center gap-4 w-full max-w-sm">
         <div className="text-xl w-full text-center p-2 bg-card rounded-md">
-          Balance: <span className="font-bold text-accent">{balance} Credits</span>
+          Balance: <span className="font-bold text-primary">{balance} Credits</span>
         </div>
-        <Button onClick={spin} disabled={spinning} size="lg" className="w-full h-16 text-xl bg-accent text-accent-foreground hover:bg-accent/90">
+        <Button onClick={spin} disabled={spinning} size="lg" className="w-full h-16 text-xl bg-primary text-primary-foreground hover:bg-primary/90">
             {spinning ? 'Spinning...' : `Spin for ${betAmount} Credits`}
             {!spinning && <Play className="ml-2"/>}
         </Button>
