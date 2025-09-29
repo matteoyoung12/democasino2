@@ -16,6 +16,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useBalance } from '@/contexts/BalanceContext';
+import { useAuth } from '@/contexts/AuthContext';
+import Link from 'next/link';
 
 
 type Tile = {
@@ -40,7 +42,7 @@ export default function MinesGame() {
   const [currentMultiplier, setCurrentMultiplier] = useState(1.0);
   const [nextMultiplier, setNextMultiplier] = useState(1.0);
   const { balance, setBalance } = useBalance();
-
+  const { user } = useAuth();
   const { toast } = useToast();
 
   const calculateMultiplier = (gemsFound: number, mines: number) => {
@@ -157,59 +159,66 @@ export default function MinesGame() {
   const isCashingOut = gameState === 'playing' && revealedGems > 0;
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6 w-full">
-        <div className="grid grid-cols-5 gap-2 p-4 bg-card rounded-lg flex-grow">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
+        <div className="md:col-span-2 grid grid-cols-5 gap-2 p-4 bg-card rounded-lg">
             {gameState === 'betting' && !grid.some(t => t.isRevealed)
              ? Array(GRID_SIZE).fill(0).map((_, i) => <div key={i} className="aspect-square rounded-lg bg-primary/10" />)
              : renderGrid()
             }
         </div>
 
-      <Card className="lg:w-80">
-        <CardContent className="grid grid-cols-2 md:grid-cols-1 gap-4 p-4 items-end">
-          <div className="grid gap-2 col-span-2">
-            <Label htmlFor="bet-amount" className="flex items-center gap-2"><Wallet />Bet Amount</Label>
-            <Input id="bet-amount" type="number" value={betAmount} onChange={(e) => setBetAmount(parseFloat(e.target.value))} disabled={gameState === 'playing'} />
-          </div>
-          <div className="grid gap-2 col-span-2">
-            <Label htmlFor="mine-count" className="flex items-center gap-2"><Bomb />Mines</Label>
-            <Select value={String(mineCount)} onValueChange={(val) => setMineCount(Number(val))} disabled={gameState === 'playing'}>
-              <SelectTrigger>
-                <SelectValue placeholder="Number of mines" />
-              </SelectTrigger>
-              <SelectContent>
-                {[...Array(24).keys()].map(i => i + 1).map(i => (
-                  <SelectItem key={i} value={String(i)}>{i}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+      <Card className="w-full">
+        <CardContent className="p-4 grid gap-4">
+          { user ? (
+            <>
+              <div className="grid gap-2">
+                <Label htmlFor="bet-amount" className="flex items-center gap-2"><Wallet /> Bet Amount</Label>
+                <Input id="bet-amount" type="number" value={betAmount} onChange={(e) => setBetAmount(parseFloat(e.target.value))} disabled={gameState === 'playing'} />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="mine-count" className="flex items-center gap-2"><Bomb /> Mines</Label>
+                <Select value={String(mineCount)} onValueChange={(val) => setMineCount(Number(val))} disabled={gameState === 'playing'}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Number of mines" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[...Array(24).keys()].map(i => i + 1).map(i => (
+                      <SelectItem key={i} value={String(i)}>{i}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-           {(gameState === 'playing' || gameState === 'busted') && (
-            <div className="flex flex-col items-start gap-1 col-span-2 border-l pl-4">
-                <p>Gems Found: <span className="font-bold text-primary">{revealedGems}</span></p>
-                <p>Current: <span className="font-bold text-primary">{currentMultiplier.toFixed(2)}x</span></p>
-                <p>Next: <span className="font-bold text-green-500">{nextMultiplier.toFixed(2)}x</span></p>
-            </div>
-           )}
+              {(gameState === 'playing' || gameState === 'busted') && (
+                <div className="flex flex-col items-start gap-1 col-span-2 border-t pt-4 mt-4">
+                    <p>Gems Found: <span className="font-bold text-primary">{revealedGems}</span></p>
+                    <p>Current: <span className="font-bold text-primary">{currentMultiplier.toFixed(2)}x</span></p>
+                    <p>Next: <span className="font-bold text-green-500">{nextMultiplier.toFixed(2)}x</span></p>
+                </div>
+              )}
 
-          {gameState === 'playing' ? (
-             <Button onClick={handleCashout} disabled={!isCashingOut} size="lg" className="h-16 w-full text-xl bg-green-500 hover:bg-green-600 col-span-2">
-               <PiggyBank className="mr-2" /> Cash Out { (betAmount * currentMultiplier).toFixed(2) }
-            </Button>
-          ) : gameState === 'busted' ? (
-             <Button onClick={() => {
-                setGameState('betting');
-                setGrid(createInitialGrid());
-             }} size="lg" className="h-16 w-full text-xl col-span-2">
-                <Play className="mr-2"/> Play Again
-            </Button>
+              {gameState === 'playing' ? (
+                <Button onClick={handleCashout} disabled={!isCashingOut} size="lg" className="h-16 w-full text-xl bg-green-500 hover:bg-green-600">
+                  <PiggyBank className="mr-2" /> Cash Out { (betAmount * currentMultiplier).toFixed(2) }
+                </Button>
+              ) : gameState === 'busted' ? (
+                <Button onClick={() => {
+                    setGameState('betting');
+                    setGrid(createInitialGrid());
+                }} size="lg" className="h-16 w-full text-xl">
+                    <Play className="mr-2"/> Play Again
+                </Button>
+              ) : (
+                <Button onClick={startGame} size="lg" className="h-16 w-full text-xl bg-primary text-primary-foreground hover:bg-primary/90">
+                    <Play className="mr-2"/> Place Bet
+                </Button>
+              )}
+            </>
           ) : (
-             <Button onClick={startGame} size="lg" className="h-16 w-full text-xl bg-primary text-primary-foreground hover:bg-primary/90 col-span-2">
-                <Play className="mr-2"/> Place Bet
+             <Button asChild size="lg" className="h-16 w-full text-xl">
+                <Link href="/login">Login to Play</Link>
             </Button>
-          )}
-
+          ) }
         </CardContent>
       </Card>
     </div>

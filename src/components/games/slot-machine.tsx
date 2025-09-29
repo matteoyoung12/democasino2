@@ -10,6 +10,8 @@ import { useBalance } from '@/contexts/BalanceContext';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Card, CardContent } from '@/components/ui/card';
+import { useAuth } from '@/contexts/AuthContext';
+import Link from 'next/link';
 
 const symbols = [
     { icon: Apple, color: 'text-green-500' },
@@ -30,7 +32,7 @@ const payoutTable = {
 
 // Function to generate a symbol, making scatter rare
 const getRandomSymbol = () => {
-    // 1 in 25 chance for a scatter symbol
+    // 1 in 35 chance for a scatter symbol
     const isScatter = Math.random() < 1 / 35; 
     if (isScatter) {
         return allSymbols.indexOf(scatterSymbol);
@@ -58,7 +60,7 @@ const Reel = ({ symbols, spinning, finalSymbols, winningCells }: { symbols: numb
                     return (
                         <div key={index} 
                              className={cn(
-                                "h-20 w-20 flex items-center justify-center bg-card/50 rounded-lg border-2 border-primary/50 mb-1",
+                                "h-16 w-16 flex items-center justify-center bg-card/50 rounded-lg border-2 border-primary/50 mb-1",
                                 isWinning && "shadow-[0_0_15px_5px] shadow-yellow-400 bg-yellow-500/20 border-yellow-400"
                               )}
                         >
@@ -81,7 +83,7 @@ export default function SlotMachine() {
     const [isAutoPlay, setIsAutoPlay] = useState(false);
     const [betAmount, setBetAmount] = useState(5);
     const { balance, setBalance } = useBalance();
-
+    const { user } = useAuth();
     const { toast } = useToast();
     const bonusBuyCost = betAmount * 50;
 
@@ -200,7 +202,7 @@ export default function SlotMachine() {
     const winningCellsTransposed = winningCells[0].map((_, colIndex) => winningCells.map(row => row[colIndex]));
     
     return (
-        <div className="flex flex-col items-center gap-6 w-full max-w-lg">
+        <div className="flex flex-col items-center gap-6 w-full">
             <div className={cn(
                 "grid grid-cols-5 gap-2 p-4 rounded-xl bg-card border-4 border-primary shadow-2xl shadow-primary/20",
                  winnings !== null && winnings > 0 && "animate-pulse"
@@ -230,29 +232,35 @@ export default function SlotMachine() {
              
             <Card className="w-full">
                 <CardContent className="p-4 flex flex-col gap-4">
-                    <div className="text-xl w-full text-center p-2 bg-card rounded-md">
-                        Balance: <span className="font-bold text-primary">{balance.toFixed(2)} Credits</span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="grid gap-2">
-                            <Label htmlFor="bet-amount">Bet Amount</Label>
-                            <Input id="bet-amount" type="number" value={betAmount} onChange={handleBetChange} disabled={spinning || isAutoPlay || freeSpins > 0} />
-                        </div>
-                         <Button onClick={buyBonus} disabled={spinning || isAutoPlay || freeSpins > 0 || balance < bonusBuyCost} variant="outline" className="self-end h-10 border-accent text-accent hover:bg-accent/20">
-                            <Gift className="mr-2"/> Buy Bonus (${bonusBuyCost})
+                     {user ? (
+                        <>
+                             <div className="text-xl w-full text-center p-2 bg-card rounded-md">
+                                Balance: <span className="font-bold text-primary">{balance.toFixed(2)} Credits</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="bet-amount">Bet Amount</Label>
+                                    <Input id="bet-amount" type="number" value={betAmount} onChange={handleBetChange} disabled={spinning || isAutoPlay || freeSpins > 0} />
+                                </div>
+                                <Button onClick={buyBonus} disabled={spinning || isAutoPlay || freeSpins > 0 || balance < bonusBuyCost} variant="outline" className="self-end h-10 border-accent text-accent hover:bg-accent/20">
+                                    <Gift className="mr-2"/> Buy Bonus (${bonusBuyCost})
+                                </Button>
+                            </div>
+                            <div className="flex gap-2 w-full">
+                                <Button onClick={() => spin(false)} disabled={spinning || isAutoPlay || freeSpins > 0} size="lg" className="w-full h-16 text-xl bg-primary text-primary-foreground hover:bg-primary/90">
+                                    {spinning ? 'Spinning...' : `Spin`}
+                                    {!spinning && <Play className="ml-2" />}
+                                </Button>
+                                <Button onClick={() => setIsAutoPlay(!isAutoPlay)} disabled={spinning || freeSpins > 0} size="lg" variant={isAutoPlay ? 'secondary' : 'outline'} className="w-full h-16 text-xl">
+                                    <Bot className="mr-2" /> {isAutoPlay ? 'Stop Auto' : 'Auto Play'}
+                                </Button>
+                            </div>
+                        </>
+                    ) : (
+                         <Button asChild size="lg" className="h-16 w-full text-xl">
+                            <Link href="/login">Login to Play</Link>
                         </Button>
-                    </div>
-
-                    <div className="flex gap-2 w-full">
-                        <Button onClick={() => spin(false)} disabled={spinning || isAutoPlay || freeSpins > 0} size="lg" className="w-full h-16 text-xl bg-primary text-primary-foreground hover:bg-primary/90">
-                            {spinning ? 'Spinning...' : `Spin`}
-                            {!spinning && <Play className="ml-2" />}
-                        </Button>
-                        <Button onClick={() => setIsAutoPlay(!isAutoPlay)} disabled={spinning || freeSpins > 0} size="lg" variant={isAutoPlay ? 'secondary' : 'outline'} className="w-full h-16 text-xl">
-                            <Bot className="mr-2" /> {isAutoPlay ? 'Stop Auto' : 'Auto Play'}
-                        </Button>
-                    </div>
+                    )}
                 </CardContent>
             </Card>
         </div>

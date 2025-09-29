@@ -11,6 +11,8 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { useBalance } from '@/contexts/BalanceContext';
+import { useAuth } from '@/contexts/AuthContext';
+import Link from 'next/link';
 
 
 export default function CoinFlipGame() {
@@ -19,7 +21,7 @@ export default function CoinFlipGame() {
   const [choice, setChoice] = useState<'heads' | 'tails'>('heads');
   const [betAmount, setBetAmount] = useState(10);
   const { balance, setBalance } = useBalance();
-
+  const { user } = useAuth();
   const { toast } = useToast();
 
   const handleFlip = useCallback(() => {
@@ -74,27 +76,34 @@ export default function CoinFlipGame() {
                 )}
 
                 <div className="grid gap-4 w-full max-w-sm">
-                    <div className="grid gap-2">
-                        <Label>Your Choice</Label>
-                        <ToggleGroup type="single" value={choice} onValueChange={(value: 'heads' | 'tails') => value && setChoice(value)} disabled={isFlipping}>
-                            <ToggleGroupItem value="heads" aria-label="Toggle heads" className="w-full">Heads</ToggleGroupItem>
-                            <ToggleGroupItem value="tails" aria-label="Toggle tails" className="w-full">Tails</ToggleGroupItem>
-                        </ToggleGroup>
-                    </div>
-                     <div className="grid gap-2">
-                        <Label htmlFor="bet-amount"><Wallet className="inline-block mr-2" />Bet Amount</Label>
-                        <Input id="bet-amount" type="number" value={betAmount} onChange={(e) => setBetAmount(parseFloat(e.target.value))} disabled={isFlipping} />
-                    </div>
+                    { user ? (
+                        <>
+                            <div className="grid gap-2">
+                                <Label>Your Choice</Label>
+                                <ToggleGroup type="single" value={choice} onValueChange={(value: 'heads' | 'tails') => value && setChoice(value)} disabled={isFlipping}>
+                                    <ToggleGroupItem value="heads" aria-label="Toggle heads" className="w-full">Heads</ToggleGroupItem>
+                                    <ToggleGroupItem value="tails" aria-label="Toggle tails" className="w-full">Tails</ToggleGroupItem>
+                                </ToggleGroup>
+                            </div>
+                             <div className="grid gap-2">
+                                <Label htmlFor="bet-amount"><Wallet className="inline-block mr-2" />Bet Amount</Label>
+                                <Input id="bet-amount" type="number" value={betAmount} onChange={(e) => setBetAmount(parseFloat(e.target.value))} disabled={isFlipping} />
+                            </div>
+                            <Button onClick={handleFlip} disabled={isFlipping} size="lg" className="w-full h-14 text-xl">
+                                {isFlipping ? 'Flipping...' : 'Flip Coin'}
+                                {!isFlipping && <Play className="ml-2"/>}
+                            </Button>
+                        </>
+                    ) : (
+                        <Button asChild size="lg" className="w-full max-w-sm h-14 text-xl">
+                            <Link href="/login">Login to Play</Link>
+                        </Button>
+                    )}
                 </div>
-
-                <Button onClick={handleFlip} disabled={isFlipping} size="lg" className="w-full max-w-sm h-14 text-xl">
-                    {isFlipping ? 'Flipping...' : 'Flip Coin'}
-                    {!isFlipping && <Play className="ml-2"/>}
-                </Button>
             </CardContent>
              <CardFooter className="flex-col items-center gap-2">
                 <p>Payout: <span className="font-bold text-primary">1.95x</span></p>
-                <p>Balance: <span className="font-bold text-primary">{balance.toFixed(2)} Credits</span></p>
+                { user && <p>Balance: <span className="font-bold text-primary">{balance.toFixed(2)} Credits</span></p>}
             </CardFooter>
         </Card>
         <style jsx>{`

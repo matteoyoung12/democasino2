@@ -10,6 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Rocket, Wallet, Target, Play, Zap } from 'lucide-react';
 import { useBalance } from '@/contexts/BalanceContext';
+import { useAuth } from '@/contexts/AuthContext';
+import Link from 'next/link';
 
 type GameState = 'idle' | 'betting' | 'running' | 'crashed' | 'cashed_out';
 
@@ -55,6 +57,7 @@ export default function CrashGame() {
 
   const { balance, setBalance } = useBalance();
   const { toast } = useToast();
+  const { user } = useAuth();
   
   const animationFrameId = useRef<number>();
   const gameStartTime = useRef<number>();
@@ -135,6 +138,7 @@ export default function CrashGame() {
               variant: 'destructive',
             });
         } else if (gameStateRef.current === 'cashed_out') {
+            setMultiplier(crashPoint.current); // Update to final crash point
             setGameState('crashed'); // Transition to final state
         }
       }
@@ -185,6 +189,13 @@ export default function CrashGame() {
   };
 
   const renderButton = () => {
+    if (!user) {
+      return (
+        <Button asChild size="lg" className="h-16 w-full text-xl">
+          <Link href="/login">Login to Play</Link>
+        </Button>
+      );
+    }
     switch (gameState) {
       case 'running':
         return <Button onClick={() => handleCashout(multiplier)} size="lg" className="h-16 w-full bg-green-500 text-xl hover:bg-green-600"><Zap className="mr-2" />Cash Out</Button>;
@@ -241,11 +252,11 @@ export default function CrashGame() {
           {renderButton()}
           <div className="grid gap-2">
             <Label htmlFor="bet-amount" className="flex items-center gap-2"><Wallet />Bet Amount</Label>
-            <Input id="bet-amount" type="number" value={betAmount} onChange={(e) => setBetAmount(parseFloat(e.target.value))} disabled={gameState === 'running' || gameState === 'betting' || gameState === 'cashed_out'} />
+            <Input id="bet-amount" type="number" value={betAmount} onChange={(e) => setBetAmount(parseFloat(e.target.value))} disabled={!user || gameState === 'running' || gameState === 'betting' || gameState === 'cashed_out'} />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="auto-cashout" className="flex items-center gap-2"><Target />Auto Cash Out</Label>
-            <Input id="auto-cashout" type="number" value={autoCashout} onChange={(e) => setAutoCashout(parseFloat(e.target.value) || 0)} placeholder="2.0" disabled={gameState === 'running' || gameState === 'betting' || gameState === 'cashed_out'} />
+            <Input id="auto-cashout" type="number" value={autoCashout} onChange={(e) => setAutoCashout(parseFloat(e.target.value) || 0)} placeholder="2.0" disabled={!user || gameState === 'running' || gameState === 'betting' || gameState === 'cashed_out'} />
           </div>
         </CardContent>
       </Card>

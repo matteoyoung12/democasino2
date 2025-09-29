@@ -7,6 +7,8 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Play } from 'lucide-react';
 import { useBalance } from '@/contexts/BalanceContext';
+import { useAuth } from '@/contexts/AuthContext';
+import Link from 'next/link';
 
 const numbers = [
   0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26
@@ -47,7 +49,7 @@ export default function RouletteGame() {
   const [spinning, setSpinning] = useState(false);
   const [winningNumber, setWinningNumber] = useState<number | null>(null);
   const [wheelRotation, setWheelRotation] = useState(0);
-
+  const { user } = useAuth();
   const { toast } = useToast();
 
   const placeBet = (type: BetType, value: BetValue) => {
@@ -134,18 +136,18 @@ export default function RouletteGame() {
       setBets([]);
       setSpinning(false);
     }, 3000);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [winningNumber, spinning]);
+  }, [winningNumber, spinning, bets, setBalance, toast]);
 
 
   return (
     <div className="flex flex-col items-center gap-8 w-full">
         <div className="relative">
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2 w-0 h-0 border-l-8 border-l-transparent border-r-8 border-r-transparent border-t-8 border-t-primary z-10" />
             <div 
-            className="w-80 h-80 bg-gray-800 rounded-full flex items-center justify-center transition-transform duration-5000 ease-out border-8 border-gray-700"
+            className="w-80 h-80 rounded-full flex items-center justify-center transition-transform duration-5000 ease-out border-8 border-yellow-800 bg-yellow-900 shadow-2xl"
             style={{ transform: `rotate(${wheelRotation}deg)` }}
             >
-                <div className="relative w-full h-full">
+                <div className="relative w-full h-full border-4 border-gray-700 rounded-full">
                     {numbers.map((num, i) => (
                         <div
                             key={num}
@@ -154,18 +156,21 @@ export default function RouletteGame() {
                         >
                             <div
                                 className={cn(
-                                    'absolute top-0 left-1/2 -ml-4 w-8 h-12 text-center text-white flex items-center justify-center font-bold origin-bottom',
-                                    'transform -translate-y-2'
+                                    'absolute top-0 left-1/2 w-8 h-[150px] text-center text-white flex items-start justify-center font-bold origin-center transform -translate-x-1/2',
                                 )}
                             >
-                                <span className={cn('block transform rotate-[-6deg]', getNumberColorClass(num), 'px-1')}>{num}</span>
+                                <span className={cn(
+                                    'block transform rotate-[6deg] mt-2 px-1 rounded-sm', 
+                                    getNumberColorClass(num)
+                                )}>
+                                    {num}
+                                </span>
                             </div>
                         </div>
                     ))}
                 </div>
                 <div className="absolute w-20 h-20 bg-gray-600 rounded-full border-4 border-gray-400" />
             </div>
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2 w-0 h-0 border-l-8 border-l-transparent border-r-8 border-r-transparent border-t-8 border-t-primary z-10" />
         </div>
          {winningNumber !== null && !spinning && (
             <div className="text-2xl font-bold p-4">Winning Number: <span className={cn('p-2 rounded', getNumberColorClass(winningNumber))}>{winningNumber}</span></div>
@@ -173,46 +178,54 @@ export default function RouletteGame() {
 
       
       <div className="p-4 rounded-lg bg-card w-full">
-        <div className="grid grid-cols-12 gap-1">
-          {numbers.filter(n => n !== 0).sort((a,b) => a-b).map(num => (
-            <button key={num} onClick={() => placeBet('number', num)} disabled={spinning} className={cn("h-12 w-full rounded-md font-bold flex items-center justify-center relative transition-transform hover:scale-105", getNumberColorClass(num))}>
-              {num}
-              {getBetAmount('number', num) && <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-primary/70 border-2 border-primary-foreground text-primary-foreground text-xs flex items-center justify-center">{getBetAmount('number', num)}</div>}
-            </button>
-          ))}
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-1 mt-1">
-             <button onClick={() => placeBet('number', 0)} disabled={spinning} className={cn("h-12 w-full rounded-md font-bold flex items-center justify-center relative transition-transform hover:scale-105", getNumberColorClass(0))}>
-                0
-                {getBetAmount('number', 0) && <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-primary/70 border-2 border-primary-foreground text-primary-foreground text-xs flex items-center justify-center">{getBetAmount('number', 0)}</div>}
-            </button>
-            <div className="col-span-2 grid grid-cols-2 gap-1">
-              {betOptions.map(opt => (
-                <button key={opt.label} onClick={() => placeBet(opt.type, opt.value)} disabled={spinning} className={cn("h-12 w-full rounded-md text-white font-bold flex items-center justify-center relative transition-transform hover:scale-105", opt.className)}>
-                    {opt.label}
-                    {getBetAmount(opt.type, opt.value) && <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-primary/70 border-2 border-primary-foreground text-primary-foreground text-xs flex items-center justify-center">{getBetAmount(opt.type, opt.value)}</div>}
-                </button>
-              ))}
-            </div>
-        </div>
+        { user ? (
+            <>
+                <div className="grid grid-cols-12 gap-1">
+                {numbers.filter(n => n !== 0).sort((a,b) => a-b).map(num => (
+                    <button key={num} onClick={() => placeBet('number', num)} disabled={spinning} className={cn("h-12 w-full rounded-md font-bold flex items-center justify-center relative transition-transform hover:scale-105", getNumberColorClass(num))}>
+                    {num}
+                    {getBetAmount('number', num) && <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-primary/70 border-2 border-primary-foreground text-primary-foreground text-xs flex items-center justify-center">{getBetAmount('number', num)}</div>}
+                    </button>
+                ))}
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-1 mt-1">
+                    <button onClick={() => placeBet('number', 0)} disabled={spinning} className={cn("h-12 w-full rounded-md font-bold flex items-center justify-center relative transition-transform hover:scale-105", getNumberColorClass(0))}>
+                        0
+                        {getBetAmount('number', 0) && <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-primary/70 border-2 border-primary-foreground text-primary-foreground text-xs flex items-center justify-center">{getBetAmount('number', 0)}</div>}
+                    </button>
+                    <div className="col-span-2 grid grid-cols-2 gap-1">
+                    {betOptions.map(opt => (
+                        <button key={opt.label} onClick={() => placeBet(opt.type, opt.value)} disabled={spinning} className={cn("h-12 w-full rounded-md text-white font-bold flex items-center justify-center relative transition-transform hover:scale-105", opt.className)}>
+                            {opt.label}
+                            {getBetAmount(opt.type, opt.value) && <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-primary/70 border-2 border-primary-foreground text-primary-foreground text-xs flex items-center justify-center">{getBetAmount(opt.type, opt.value)}</div>}
+                        </button>
+                    ))}
+                    </div>
+                </div>
+                <div className="flex flex-col sm:flex-row items-center gap-4 w-full p-4 bg-card rounded-lg mt-4">
+                    <div className="text-lg">Balance: <span className="font-bold text-primary">{balance.toFixed(2)}</span></div>
+                    <div className="flex-grow" />
+                    <div className="flex items-center gap-2">
+                        <span className="text-lg">Chip:</span>
+                        {[1, 5, 10, 25, 100].map(amount => (
+                            <Button key={amount} variant={chipAmount === amount ? 'secondary' : 'outline'} onClick={() => setChipAmount(amount)} disabled={spinning} className={chipAmount === amount ? 'bg-primary' : ''}>
+                                {amount}
+                            </Button>
+                        ))}
+                    </div>
+                    <Button onClick={spinWheel} disabled={spinning || bets.length === 0} size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90">
+                    <Play className="mr-2 h-5 w-5"/>
+                    Spin
+                    </Button>
+                </div>
+            </>
+        ) : (
+             <Button asChild size="lg" className="h-16 w-full text-xl">
+                <Link href="/login">Login to Play</Link>
+            </Button>
+        )}
       </div>
 
-      <div className="flex flex-col sm:flex-row items-center gap-4 w-full p-4 bg-card rounded-lg">
-        <div className="text-lg">Balance: <span className="font-bold text-primary">{balance.toFixed(2)}</span></div>
-        <div className="flex-grow" />
-        <div className="flex items-center gap-2">
-            <span className="text-lg">Chip:</span>
-            {[1, 5, 10, 25, 100].map(amount => (
-                <Button key={amount} variant={chipAmount === amount ? 'secondary' : 'outline'} onClick={() => setChipAmount(amount)} disabled={spinning} className={chipAmount === amount ? 'bg-primary' : ''}>
-                    {amount}
-                </Button>
-            ))}
-        </div>
-        <Button onClick={spinWheel} disabled={spinning || bets.length === 0} size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90">
-          <Play className="mr-2 h-5 w-5"/>
-          Spin
-        </Button>
-      </div>
        <style jsx>{`
         .duration-5000 {
             transition-duration: 5000ms;

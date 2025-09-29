@@ -10,6 +10,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Play, Wallet } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
+import Link from 'next/link';
 
 type Suit = 'H' | 'D' | 'C' | 'S';
 type Rank = '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '10' | 'J' | 'Q' | 'K' | 'A';
@@ -111,6 +113,7 @@ export default function BlackjackGame() {
 
     const { balance, setBalance } = useBalance();
     const { toast } = useToast();
+    const { user } = useAuth();
 
     const deal = () => {
         if (betAmount <= 0 || betAmount > balance) {
@@ -256,29 +259,37 @@ export default function BlackjackGame() {
                     <HandDisplay hand={playerHand} title="Your Hand" score={getHandScore(playerHand)} />
                 </CardContent>
                 <CardFooter className="flex flex-col gap-4 bg-black/20 p-4">
-                     {gameState === 'betting' && (
-                        <div className="flex flex-col items-center gap-4 w-full max-w-sm mx-auto">
-                             <div className="grid gap-2 w-full">
-                                <Label htmlFor="bet-amount" className="flex items-center gap-2 text-white"><Wallet />Bet Amount</Label>
-                                <Input id="bet-amount" type="number" value={betAmount} onChange={(e) => setBetAmount(parseFloat(e.target.value) || 0)} className="bg-white/90 text-black"/>
-                            </div>
-                            <Button onClick={deal} size="lg" className="h-14 w-full text-xl"><Play className="mr-2"/>Deal</Button>
-                        </div>
-                    )}
-                    {gameState === 'playing' && (
-                        <div className="flex gap-4">
-                            <Button onClick={hit} size="lg" className="h-16 text-xl">Hit</Button>
-                            <Button onClick={stand} size="lg" className="h-16 text-xl">Stand</Button>
-                        </div>
-                    )}
-                    {gameState === 'finished' && (
-                        <Button onClick={() => {
-                            setGameState('betting');
-                            setPlayerHand([]);
-                            setDealerHand([]);
-                            setMessage('Place your bet to start.');
-                        }} size="lg" className="h-16 text-xl">
-                            Play Again
+                     {user ? (
+                        <>
+                            {gameState === 'betting' && (
+                                <div className="flex flex-col items-center gap-4 w-full max-w-sm mx-auto">
+                                    <div className="grid gap-2 w-full">
+                                        <Label htmlFor="bet-amount" className="flex items-center gap-2 text-white"><Wallet />Bet Amount</Label>
+                                        <Input id="bet-amount" type="number" value={betAmount} onChange={(e) => setBetAmount(parseFloat(e.target.value) || 0)} className="bg-white/90 text-black"/>
+                                    </div>
+                                    <Button onClick={deal} size="lg" className="h-14 w-full text-xl"><Play className="mr-2"/>Deal</Button>
+                                </div>
+                            )}
+                            {gameState === 'playing' && (
+                                <div className="flex gap-4">
+                                    <Button onClick={hit} size="lg" className="h-16 text-xl">Hit</Button>
+                                    <Button onClick={stand} size="lg" className="h-16 text-xl">Stand</Button>
+                                </div>
+                            )}
+                            {gameState === 'finished' && (
+                                <Button onClick={() => {
+                                    setGameState('betting');
+                                    setPlayerHand([]);
+                                    setDealerHand([]);
+                                    setMessage('Place your bet to start.');
+                                }} size="lg" className="h-16 text-xl">
+                                    Play Again
+                                </Button>
+                            )}
+                        </>
+                    ) : (
+                        <Button asChild size="lg" className="h-16 text-xl">
+                            <Link href="/login">Login to Play</Link>
                         </Button>
                     )}
                     {(gameState === 'dealer' || gameState === 'playing' || gameState === 'finished') && <div className="h-16"/>}
