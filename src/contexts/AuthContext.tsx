@@ -3,7 +3,8 @@
 
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { auth } from '@/lib/firebase'; // Assuming you have firebase initialized here
+import { auth, db } from '@/lib/firebase'; // Assuming you have firebase initialized here
+import { doc, setDoc } from 'firebase/firestore';
 import { 
     onAuthStateChanged,
     createUserWithEmailAndPassword,
@@ -39,8 +40,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signup = async (email: string, password: string, displayName: string) => {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    if (userCredential.user) {
-        await updateProfile(userCredential.user, { displayName });
+    const user = userCredential.user;
+    if (user) {
+        await updateProfile(user, { displayName });
+        // Create a document in Firestore for the new user
+        await setDoc(doc(db, "users", user.uid), {
+            uid: user.uid,
+            displayName: displayName,
+            email: user.email,
+            createdAt: new Date(),
+        });
     }
     return userCredential;
   };
