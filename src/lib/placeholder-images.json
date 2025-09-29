@@ -35,6 +35,12 @@
       "description": "Image for the coin flip game card",
       "imageUrl": "https://images.unsplash.com/photo-1554522969-56c68a45ab2f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxnb2xkYSUyMGNvaW58ZW58MHx8fHwxNzU5MjA5NTAyfDA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "gold coin"
+    },
+    {
+      "id": "blackjack-card",
+      "description": "Image for the blackjack game card",
+      "imageUrl": "https://images.unsplash.com/photo-1541447232314-5d27f878dee7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxibGFja2phY2slMjBjYXJkc3xlbnwwfHx8fDE3NTkyOTkwMTB8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "blackjack cards"
     }
   ]
 }

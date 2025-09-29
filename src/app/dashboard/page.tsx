@@ -46,6 +46,13 @@ const games = [
     description: 'Heads or tails? A simple game of chance with a 50/50 outcome. Bet on the flip!',
     href: '/dashboard/coin-flip',
     imageId: 'coin-flip-card',
+  },
+  {
+    id: 'blackjack',
+    title: 'Blackjack',
+    description: 'Get as close to 21 as you can without going over. Beat the dealer and win!',
+    href: '/dashboard/blackjack',
+    imageId: 'blackjack-card',
   }
 ];
 

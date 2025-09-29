@@ -49,7 +49,7 @@ export default function CoinFlipGame() {
   }, [betAmount, balance, choice, toast, setBalance]);
 
   return (
-    <div className="flex flex-col items-center gap-8 w-full max-w-md">
+    <div className="flex flex-col items-center gap-8 w-full">
         <Card className="w-full">
             <CardHeader>
                 <CardTitle className="text-center">Coin Flip</CardTitle>
@@ -73,7 +73,7 @@ export default function CoinFlipGame() {
                     </p>
                 )}
 
-                <div className="grid gap-4 w-full">
+                <div className="grid gap-4 w-full max-w-sm">
                     <div className="grid gap-2">
                         <Label>Your Choice</Label>
                         <ToggleGroup type="single" value={choice} onValueChange={(value: 'heads' | 'tails') => value && setChoice(value)} disabled={isFlipping}>
@@ -87,7 +87,7 @@ export default function CoinFlipGame() {
                     </div>
                 </div>
 
-                <Button onClick={handleFlip} disabled={isFlipping} size="lg" className="w-full h-14 text-xl">
+                <Button onClick={handleFlip} disabled={isFlipping} size="lg" className="w-full max-w-sm h-14 text-xl">
                     {isFlipping ? 'Flipping...' : 'Flip Coin'}
                     {!isFlipping && <Play className="ml-2"/>}
                 </Button>

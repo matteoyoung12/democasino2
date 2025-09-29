@@ -15,7 +15,8 @@ import {
   Wallet,
   Coins,
   CircleDollarSign,
-  Palette
+  Palette,
+  Spade
 } from "lucide-react";
 import Logo from "@/components/logo";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -59,6 +60,7 @@ const menuItems = [
   { href: "/dashboard/crash", label: "Crash", icon: Rocket },
   { href: "/dashboard/mines", label: "Mines", icon: Bomb },
   { href: "/dashboard/coin-flip", label: "Coin Flip", icon: Coins },
+  { href: "/dashboard/blackjack", label: "Blackjack", icon: Spade },
 ];
 
 

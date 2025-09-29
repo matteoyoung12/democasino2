@@ -159,7 +159,7 @@ export default function SlotMachine() {
     const finalGridTransposed = grid[0].map((_, colIndex) => grid.map(row => row[colIndex]));
 
     return (
-        <div className="flex flex-col items-center gap-6 w-full max-w-lg">
+        <div className="flex flex-col items-center gap-6 w-full">
             <div className={cn(
                 "grid grid-cols-5 gap-2 p-4 rounded-xl bg-card border-4 border-primary shadow-2xl shadow-primary/20",
                 winnings !== null && "animate-pulse"

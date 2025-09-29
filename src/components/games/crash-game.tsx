@@ -95,6 +95,11 @@ export default function CrashGame() {
     setGameState('running');
     
     const animate = (time: number) => {
+      if(gameStateRef.current !== 'running' && gameStateRef.current !== 'betting') {
+        if(animationFrameId.current) cancelAnimationFrame(animationFrameId.current)
+        return;
+      }
+
       const elapsedTime = (time - (gameStartTime.current ?? time));
       const finalTime = fullCurveData.current[fullCurveData.current.length-1].time * 1000;
 
@@ -113,6 +118,7 @@ export default function CrashGame() {
 
       if (autoCashout > 1 && currentMultiplier >= autoCashout && gameStateRef.current === 'running') {
         handleCashout(autoCashout);
+        if(animationFrameId.current) cancelAnimationFrame(animationFrameId.current)
       }
       
       if (currentMultiplier < crashPoint.current) {
@@ -183,6 +189,9 @@ export default function CrashGame() {
         return <Button onClick={() => handleCashout(multiplier)} size="lg" className="h-16 w-full bg-green-500 text-xl hover:bg-green-600"><Zap className="mr-2" />Cash Out</Button>;
       case 'betting':
         return <Button disabled size="lg" className="h-16 w-full text-xl">Starting...</Button>;
+      case 'cashed_out':
+      case 'crashed':
+         return <Button onClick={handleBet} size="lg" className="h-16 w-full bg-primary text-xl text-primary-foreground hover:bg-primary/90"><Play className="mr-2" />Play Again</Button>;
       default:
         return <Button onClick={handleBet} size="lg" className="h-16 w-full bg-primary text-xl text-primary-foreground hover:bg-primary/90"><Play className="mr-2" />Place Bet</Button>;
     }
