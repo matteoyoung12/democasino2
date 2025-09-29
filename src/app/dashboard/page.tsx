@@ -18,9 +18,9 @@ import { translations } from '@/lib/translations';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 
 const tournaments = [
-    { title: "Счастливая карта", prize: "5 000.00 ₽", players: 126, time: "01:01:01:35" },
-    { title: "Монополия и не только", prize: "10 000.00 ₽", players: 100, time: "04:00:31:35" },
-    { title: "Слот-машины с бонусами", prize: "20 000.00 ₽", players: 88, time: "05:01:31:35" }
+    { title: "Blatnaя Family", prize: "5 000.00 ₽", players: 126, time: "01:01:01:35", bgUrl: "https://picsum.photos/seed/t1/400/250" },
+    { title: "Blatnaя Family", prize: "10 000.00 ₽", players: 100, time: "04:00:31:35", bgUrl: "https://picsum.photos/seed/t2/400/250" },
+    { title: "Blatnaя Family", prize: "20 000.00 ₽", players: 88, time: "05:01:31:35", bgUrl: "https://picsum.photos/seed/t3/400/250" }
 ]
 
 const games = [
@@ -29,21 +29,36 @@ const games = [
     titleKey: 'crashTitle',
     href: '/dashboard/crash',
     imageUrl: 'https://picsum.photos/seed/gp1/400/200',
-    bgColor: 'bg-blue-500'
   },
   {
     id: 'roulette',
     titleKey: 'rouletteTitle',
     href: '/dashboard/roulette',
     imageUrl: 'https://picsum.photos/seed/gp2/400/200',
-    bgColor: 'bg-red-500'
   },
   {
     id: 'mines',
     titleKey: 'minesTitle',
     href: '/dashboard/mines',
     imageUrl: 'https://picsum.photos/seed/gp3/400/200',
-    bgColor: 'bg-yellow-500'
+  },
+   {
+    id: 'slots',
+    titleKey: 'slotsTitle',
+    href: '/dashboard/slots',
+    imageUrl: 'https://picsum.photos/seed/gp4/400/200',
+  },
+  {
+    id: 'blackjack',
+    titleKey: 'blackjackTitle',
+    href: '/dashboard/blackjack',
+    imageUrl: 'https://picsum.photos/seed/gp5/400/200',
+  },
+  {
+    id: 'coin_flip',
+    titleKey: 'coinFlipTitle',
+    href: '/dashboard/coin-flip',
+    imageUrl: 'https://picsum.photos/seed/gp6/400/200',
   },
 ];
 
@@ -93,29 +108,33 @@ export default function DashboardPage() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {tournaments.map((tour, index) => (
-            <Card key={index} className="bg-card border-border overflow-hidden">
-                <CardHeader>
-                    <CardTitle>{tour.title}</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                    <div className="flex items-center gap-2 text-accent font-bold text-lg">
-                        <Trophy className="h-5 w-5"/>
-                        <span>{tour.prize}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm text-muted-foreground">
-                        <div className="flex items-center gap-2">
-                             <Users className="h-4 w-4"/>
-                             <span>{tour.players}</span>
+            <Card key={index} className="bg-card border-border overflow-hidden relative text-white flex flex-col justify-between aspect-[4/3]">
+                <Image src={tour.bgUrl} alt={tour.title} fill className="object-cover opacity-20"/>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"/>
+                <div className="relative z-10 p-6 flex flex-col h-full">
+                    <CardHeader className="p-0">
+                        <CardTitle>{tour.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0 mt-auto space-y-2">
+                        <div className="flex items-center gap-2 text-accent font-bold text-lg">
+                            <Trophy className="h-5 w-5"/>
+                            <span>{tour.prize}</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                             <Clock className="h-4 w-4"/>
-                            <span>До завершения {tour.time}</span>
+                        <div className="flex items-center justify-between text-sm text-muted-foreground">
+                            <div className="flex items-center gap-2">
+                                <Users className="h-4 w-4"/>
+                                <span>{tour.players}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Clock className="h-4 w-4"/>
+                                <span>До завершения {tour.time}</span>
+                            </div>
                         </div>
-                    </div>
-                </CardContent>
-                <CardFooter>
-                    <Button className="w-full bg-primary/20 text-primary hover:bg-primary/30">Участвовать</Button>
-                </CardFooter>
+                    </CardContent>
+                    <CardFooter className="p-0 mt-4">
+                        <Button className="w-full bg-primary/20 text-primary hover:bg-primary/30">Участвовать</Button>
+                    </CardFooter>
+                </div>
             </Card>
           ))}
         </div>
