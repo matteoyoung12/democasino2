@@ -1,4 +1,3 @@
-
 "use client";
 
 import Image from 'next/image';
@@ -23,7 +22,7 @@ function HomePageContent() {
        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background" />
       
       <div className="relative z-10 flex flex-col items-center p-8 text-center">
-        <Logo className="mb-4 text-6xl md:text-8xl" />
+        <Logo className="mb-4 text-4xl md:text-6xl" />
         <p className="mt-4 max-w-2xl text-lg text-foreground/80 md:text-xl">
           {t.heroSlogan}
         </p>

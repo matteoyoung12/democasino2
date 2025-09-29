@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -71,7 +70,7 @@ export default function Sidebar() {
     return (
         <aside className="w-20 bg-card flex flex-col items-center py-4 px-2">
              <Link href="/dashboard" className="mb-8">
-                <Logo className="text-2xl" showIcon={true} />
+                <Logo className="text-sm text-center" />
                </Link>
             <TooltipProvider>
                 <nav className="flex flex-col items-center gap-3">
