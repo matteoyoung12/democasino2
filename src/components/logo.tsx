@@ -1,6 +1,6 @@
 
 import { cn } from '@/lib/utils';
-import { Gem } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
 
 type LogoProps = {
   className?: string;
@@ -9,11 +9,11 @@ type LogoProps = {
 
 export default function Logo({ className, showIcon = true }: LogoProps) {
   return (
-    <div className="flex items-center gap-2">
-      {showIcon && <Gem className="h-7 w-7 text-primary" />}
-      <h1 className={cn('font-headline font-bold tracking-tight', className)}>
-        Blatna<span className="text-accent">я</span> Family
+    <div className="flex items-center gap-1">
+      <h1 className={cn('font-headline font-bold tracking-tight text-2xl', className)}>
+        UP-X
       </h1>
+      {showIcon && <ArrowUpRight className="h-8 w-8 text-primary -ml-2 -mt-4" />}
     </div>
   );
 }

@@ -3,13 +3,6 @@ export const translations = {
   en: {
     // General
     playNow: 'Play Now',
-    lobby: 'Lobby',
-    slots: 'Slots',
-    roulette: 'Roulette',
-    crash: 'Crash',
-    mines: 'Mines',
-    coin_flip: 'Coin Flip',
-    blackjack: 'Blackjack',
     balance: 'Balance',
     credits: 'Credits',
     youWon: 'You Won',
@@ -25,7 +18,28 @@ export const translations = {
     cashOut: 'Cash Out',
     cashedOut: 'Cashed Out!',
     payout: 'Payout',
-    
+    deposit: 'Deposit',
+    withdraw: 'Withdraw',
+
+    // Header & Sidebar
+    games: 'Games',
+    tournaments: 'Tournaments',
+    ranks: 'Ranks',
+    reviews: 'Reviews',
+    help: 'Help',
+    bonuses: 'Bonuses',
+    support: 'Support',
+    notifications: 'Notifications',
+
+    // Game types
+    lobby: 'Lobby',
+    slots: 'Slots',
+    roulette: 'Roulette',
+    crash: 'Crash',
+    mines: 'Mines',
+    coin_flip: 'Coin Flip',
+    blackjack: 'Blackjack',
+
     // Landing page
     heroSlogan: 'Experience the thrill of our exclusive online casino. Fair play, big wins, and endless entertainment await.',
     viewGames: 'View Games',
@@ -34,7 +48,6 @@ export const translations = {
     makeDeposit: 'Make a Deposit',
     enterDepositAmount: 'Enter the amount you would like to deposit into your account.',
     amount: 'Amount',
-    deposit: 'Deposit',
     depositSuccessful: 'Deposit Successful',
     youHaveAdded: 'You have added',
     toYourBalance: 'to your balance',
@@ -132,13 +145,6 @@ export const translations = {
   ru: {
     // General
     playNow: 'Играть',
-    lobby: 'Лобби',
-    slots: 'Слоты',
-    roulette: 'Рулетка',
-    crash: 'Краш',
-    mines: 'Мины',
-    coin_flip: 'Монетка',
-    blackjack: 'Блэкджек',
     balance: 'Баланс',
     credits: 'кредитов',
     youWon: 'Вы выиграли',
@@ -154,6 +160,27 @@ export const translations = {
     cashOut: 'Забрать',
     cashedOut: 'Выигрыш забран!',
     payout: 'Выплата',
+    deposit: 'Пополнить',
+    withdraw: 'Вывести',
+
+    // Header & Sidebar
+    games: 'Игры',
+    tournaments: 'Турниры',
+    ranks: 'Ранги',
+    reviews: 'Отзывы',
+    help: 'Помощь',
+    bonuses: 'Бонусы',
+    support: 'Поддержка',
+    notifications: 'Уведомления',
+
+    // Game types
+    lobby: 'Лобби',
+    slots: 'Слоты',
+    roulette: 'Рулетка',
+    crash: 'Краш',
+    mines: 'Мины',
+    coin_flip: 'Монетка',
+    blackjack: 'Блэкджек',
 
     // Landing page
     heroSlogan: 'Испытайте азарт нашего эксклюзивного онлайн-казино. Честная игра, большие выигрыши и бесконечное развлечение ждут вас.',
@@ -163,7 +190,6 @@ export const translations = {
     makeDeposit: 'Сделать депозит',
     enterDepositAmount: 'Введите сумму, которую вы хотите внести на свой счет.',
     amount: 'Сумма',
-    deposit: 'Депозит',
     depositSuccessful: 'Депозит успешен',
     youHaveAdded: 'Вы добавили',
     toYourBalance: 'на ваш баланс',

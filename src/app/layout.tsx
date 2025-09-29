@@ -2,17 +2,20 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
-import { Poppins } from 'next/font/google';
+import { Inter } from 'next/font/google';
+import { cn } from '@/lib/utils';
+import { LanguageProvider } from '@/contexts/LanguageContext';
+import { BalanceProvider } from '@/contexts/BalanceContext';
+import { ThemeProvider } from '@/contexts/ThemeContext';
 
-const poppins = Poppins({
+const inter = Inter({
   subsets: ['latin'],
   display: 'swap',
   variable: '--font-body',
-  weight: ['400', '500', '600', '700'],
 });
 
 export const metadata: Metadata = {
-  title: 'Blatnaя Family',
+  title: 'UP-X Casino',
   description: 'Online Casino Platform',
 };
 
@@ -22,10 +25,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${poppins.variable}`} suppressHydrationWarning>
+    <html lang="en" className={cn(inter.variable, "dark")} suppressHydrationWarning>
       <body className="font-body antialiased">
-            {children}
-            <Toaster />
+        <LanguageProvider>
+          <ThemeProvider>
+            <BalanceProvider>
+                {children}
+                <Toaster />
+            </BalanceProvider>
+          </ThemeProvider>
+        </LanguageProvider>
       </body>
     </html>
   );
