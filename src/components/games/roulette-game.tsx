@@ -101,7 +101,7 @@ export default function RouletteGame() {
   return (
     <div className="flex flex-col items-center gap-8 w-full max-w-4xl">
       <div className="relative flex items-center justify-center w-48 h-48 rounded-full border-4 border-primary shadow-lg">
-        <Circle className={cn("absolute w-full h-full text-card animate-spin", spinning ? "duration-500" : "duration-[20000ms]")}/>
+        <Circle className={cn("absolute w-full h-full text-card animate-spin", spinning ? "duration-500" : "duration-[20s]")}/>
         <div className={cn("absolute w-40 h-40 rounded-full flex items-center justify-center text-5xl font-bold text-white", displayNumber !== null ? getNumberColor(displayNumber) : 'bg-card')}>
           {displayNumber !== null ? displayNumber : '?'}
         </div>
