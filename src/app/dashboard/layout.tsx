@@ -14,7 +14,8 @@ import {
   Bomb,
   Wallet,
   Coins,
-  CircleDollarSign
+  CircleDollarSign,
+  Palette
 } from "lucide-react";
 import Logo from "@/components/logo";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -41,11 +42,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { BalanceProvider, useBalance } from "@/contexts/BalanceContext";
+import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
+import { cn } from "@/lib/utils";
+
 
 const menuItems = [
   { href: "/dashboard", label: "Lobby", icon: LayoutGrid },
@@ -104,6 +109,43 @@ function DepositDialog() {
     )
 }
 
+const themeColors = [
+    { name: 'Violet', value: '262 84% 58%' },
+    { name: 'Blue', value: '221 83% 53%' },
+    { name: 'Green', value: '142 76% 36%' },
+    { name: 'Orange', value: '25 95% 53%' },
+    { name: 'Red', value: '0 84% 60%' },
+];
+
+
+function ThemeSelector() {
+    const { theme, setTheme } = useTheme();
+
+    return (
+        <Popover>
+            <PopoverTrigger asChild>
+                 <Button variant="outline" className="h-auto">
+                    <Palette className="h-5 w-5 text-primary" />
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-2">
+                <div className="flex gap-2">
+                    {themeColors.map((color) => (
+                         <button
+                            key={color.name}
+                            onClick={() => setTheme(color.value)}
+                            className={cn("h-8 w-8 rounded-full border-2 transition-transform hover:scale-110",
+                                theme === color.value ? "border-primary" : "border-transparent"
+                            )}
+                            style={{ backgroundColor: `hsl(${color.value})` }}
+                            aria-label={`Set theme to ${color.name}`}
+                        />
+                    ))}
+                </div>
+            </PopoverContent>
+        </Popover>
+    );
+}
 
 function TopNav() {
     const pathname = usePathname();
@@ -140,6 +182,7 @@ function TopNav() {
                     <span>${balance.toFixed(2)}</span>
                 </div>
                 <DepositDialog />
+                <ThemeSelector />
                  <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="h-auto rounded-full p-0">
@@ -179,8 +222,10 @@ function DashboardLayoutContent({
 }: {
   children: React.ReactNode;
 }) {
+    const { theme } = useTheme();
+
     return (
-        <div className="flex min-h-screen w-full flex-col">
+        <div className="flex min-h-screen w-full flex-col" style={{ '--primary': theme } as React.CSSProperties}>
             <TopNav />
             {children}
         </div>
@@ -193,8 +238,10 @@ export default function DashboardLayout({
     children: React.ReactNode;
 }) {
     return (
-        <BalanceProvider>
-            <DashboardLayoutContent>{children}</DashboardLayoutContent>
-        </BalanceProvider>
+        <ThemeProvider>
+            <BalanceProvider>
+                <DashboardLayoutContent>{children}</DashboardLayoutContent>
+            </BalanceProvider>
+        </ThemeProvider>
     );
 }
