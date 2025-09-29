@@ -7,7 +7,6 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Play } from 'lucide-react';
 import { useBalance } from '@/contexts/BalanceContext';
-import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 
 const numbers = [
@@ -49,7 +48,6 @@ export default function RouletteGame() {
   const [spinning, setSpinning] = useState(false);
   const [winningNumber, setWinningNumber] = useState<number | null>(null);
   const [wheelRotation, setWheelRotation] = useState(0);
-  const { user } = useAuth();
   const { toast } = useToast();
 
   const placeBet = (type: BetType, value: BetValue) => {
@@ -178,7 +176,6 @@ export default function RouletteGame() {
 
       
       <div className="p-4 rounded-lg bg-card w-full">
-        { user ? (
             <>
                 <div className="grid grid-cols-12 gap-1">
                 {numbers.filter(n => n !== 0).sort((a,b) => a-b).map(num => (
@@ -219,11 +216,6 @@ export default function RouletteGame() {
                     </Button>
                 </div>
             </>
-        ) : (
-             <Button asChild size="lg" className="h-16 w-full text-xl">
-                <Link href="/login">Login to Play</Link>
-            </Button>
-        )}
       </div>
 
        <style jsx>{`

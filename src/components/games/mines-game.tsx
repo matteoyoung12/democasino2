@@ -16,7 +16,6 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useBalance } from '@/contexts/BalanceContext';
-import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 
 
@@ -42,7 +41,6 @@ export default function MinesGame() {
   const [currentMultiplier, setCurrentMultiplier] = useState(1.0);
   const [nextMultiplier, setNextMultiplier] = useState(1.0);
   const { balance, setBalance } = useBalance();
-  const { user } = useAuth();
   const { toast } = useToast();
 
   const calculateMultiplier = (gemsFound: number, mines: number) => {
@@ -169,7 +167,6 @@ export default function MinesGame() {
 
       <Card className="w-full">
         <CardContent className="p-4 grid gap-4">
-          { user ? (
             <>
               <div className="grid gap-2">
                 <Label htmlFor="bet-amount" className="flex items-center gap-2"><Wallet /> Bet Amount</Label>
@@ -214,11 +211,6 @@ export default function MinesGame() {
                 </Button>
               )}
             </>
-          ) : (
-             <Button asChild size="lg" className="h-16 w-full text-xl">
-                <Link href="/login">Login to Play</Link>
-            </Button>
-          ) }
         </CardContent>
       </Card>
     </div>

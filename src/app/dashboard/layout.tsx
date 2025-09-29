@@ -52,7 +52,6 @@ import { useToast } from "@/hooks/use-toast";
 import { BalanceProvider, useBalance } from "@/contexts/BalanceContext";
 import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/contexts/AuthContext";
 
 
 const menuItems = [
@@ -154,7 +153,6 @@ function ThemeSelector() {
 function TopNav() {
     const pathname = usePathname();
     const { balance } = useBalance();
-    const { user, logout } = useAuth();
 
     return (
         <header className="sticky top-0 z-10 flex h-20 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm sm:px-6">
@@ -184,60 +182,16 @@ function TopNav() {
                 </TooltipProvider>
             </div>
             <div className="flex items-center gap-4">
-                { user &&
-                    <>
-                        <div className="flex items-center gap-2 rounded-full border bg-card px-4 py-2 text-md font-medium">
-                            <Wallet className="h-5 w-5 text-primary" />
-                            <span>${balance.toFixed(2)}</span>
-                        </div>
-                        <DepositDialog />
-                    </>
-                }
+                <div className="flex items-center gap-2 rounded-full border bg-card px-4 py-2 text-md font-medium">
+                    <Wallet className="h-5 w-5 text-primary" />
+                    <span>${balance.toFixed(2)}</span>
+                </div>
+                <DepositDialog />
                 <ThemeSelector />
-                 <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-auto rounded-full p-0">
-                             <Avatar className="h-11 w-11 border-2 border-primary/50">
-                                <AvatarImage src={user?.photoURL || "https://picsum.photos/seed/user/100/100"} />
-                                <AvatarFallback>{user?.displayName?.charAt(0) || 'G'}</AvatarFallback>
-                            </Avatar>
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-56">
-                        { user ? <>
-                            <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem>
-                                <User className="mr-2 h-4 w-4" />
-                                <span>Profile</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                                <Settings className="mr-2 h-4 w-4" />
-                                <span>Settings</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={logout}>
-                                <LogOut className="mr-2 h-4 w-4" />
-                                <span>Log out</span>
-                            </DropdownMenuItem>
-                        </> : <>
-                             <DropdownMenuLabel>Guest</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem asChild>
-                                <Link href="/login">
-                                    <LogOut className="mr-2 h-4 w-4" />
-                                    <span>Login</span>
-                                </Link>
-                            </DropdownMenuItem>
-                             <DropdownMenuItem asChild>
-                                <Link href="/signup">
-                                    <UserPlus className="mr-2 h-4 w-4" />
-                                    <span>Sign Up</span>
-                                </Link>
-                            </DropdownMenuItem>
-                        </>}
-                    </DropdownMenuContent>
-                </DropdownMenu>
+                 <Avatar className="h-11 w-11 border-2 border-primary/50">
+                    <AvatarImage src={"https://picsum.photos/seed/user/100/100"} />
+                    <AvatarFallback>G</AvatarFallback>
+                </Avatar>
             </div>
         </header>
     );

@@ -10,7 +10,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Play, Wallet } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 
 type Suit = 'H' | 'D' | 'C' | 'S';
@@ -113,7 +112,6 @@ export default function BlackjackGame() {
 
     const { balance, setBalance } = useBalance();
     const { toast } = useToast();
-    const { user } = useAuth();
 
     const deal = () => {
         if (betAmount <= 0 || betAmount > balance) {
@@ -259,7 +257,7 @@ export default function BlackjackGame() {
                     <HandDisplay hand={playerHand} title="Your Hand" score={getHandScore(playerHand)} />
                 </CardContent>
                 <CardFooter className="flex flex-col gap-4 bg-black/20 p-4">
-                     {user ? (
+                     
                         <>
                             {gameState === 'betting' && (
                                 <div className="flex flex-col items-center gap-4 w-full max-w-sm mx-auto">
@@ -287,11 +285,7 @@ export default function BlackjackGame() {
                                 </Button>
                             )}
                         </>
-                    ) : (
-                        <Button asChild size="lg" className="h-16 text-xl">
-                            <Link href="/login">Login to Play</Link>
-                        </Button>
-                    )}
+                    
                     {(gameState === 'dealer' || gameState === 'playing' || gameState === 'finished') && <div className="h-16"/>}
                 </CardFooter>
             </Card>

@@ -10,7 +10,6 @@ import { useBalance } from '@/contexts/BalanceContext';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Card, CardContent } from '@/components/ui/card';
-import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 
 const symbols = [
@@ -83,7 +82,6 @@ export default function SlotMachine() {
     const [isAutoPlay, setIsAutoPlay] = useState(false);
     const [betAmount, setBetAmount] = useState(5);
     const { balance, setBalance } = useBalance();
-    const { user } = useAuth();
     const { toast } = useToast();
     const bonusBuyCost = betAmount * 50;
 
@@ -232,7 +230,7 @@ export default function SlotMachine() {
              
             <Card className="w-full">
                 <CardContent className="p-4 flex flex-col gap-4">
-                     {user ? (
+                     
                         <>
                              <div className="text-xl w-full text-center p-2 bg-card rounded-md">
                                 Balance: <span className="font-bold text-primary">{balance.toFixed(2)} Credits</span>
@@ -256,11 +254,7 @@ export default function SlotMachine() {
                                 </Button>
                             </div>
                         </>
-                    ) : (
-                         <Button asChild size="lg" className="h-16 w-full text-xl">
-                            <Link href="/login">Login to Play</Link>
-                        </Button>
-                    )}
+                    
                 </CardContent>
             </Card>
         </div>
