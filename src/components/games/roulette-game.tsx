@@ -24,8 +24,8 @@ numbers.forEach((num, index) => {
     numberPositions[num] = { angle: (index / numbers.length) * 360 };
 });
 
-type BetType = 'number' | 'red' | 'black' | 'even' | 'odd' | 'low' | 'high';
-type BetValue = number | 'red' | 'black' | 'even' | 'odd' | 'low' | 'high';
+type BetType = 'number' | 'red' | 'black' | 'even' | 'odd';
+type BetValue = number | 'red' | 'black' | 'even' | 'odd';
 
 type Bet = {
   type: BetType;
@@ -34,12 +34,10 @@ type Bet = {
 };
 
 const betOptions: {type: BetType, value: BetValue, label: string, payout: number, className: string}[] = [
-    { type: 'low', value: 'low', label: '1-18', payout: 2, className: 'bg-zinc-700' },
     { type: 'even', value: 'even', label: 'Even', payout: 2, className: 'bg-zinc-700' },
     { type: 'red', value: 'red', label: 'Red', payout: 2, className: 'bg-red-600' },
     { type: 'black', value: 'black', label: 'Black', payout: 2, className: 'bg-black' },
     { type: 'odd', value: 'odd', label: 'Odd', payout: 2, className: 'bg-zinc-700' },
-    { type: 'high', value: 'high', label: '19-36', payout: 2, className: 'bg-zinc-700' },
 ]
 
 export default function RouletteGame() {
@@ -83,7 +81,7 @@ export default function RouletteGame() {
     const finalNumber = numbers[Math.floor(Math.random() * numbers.length)];
     const finalAngle = numberPositions[finalNumber].angle;
     const fullSpins = 5 * 360;
-    const newRotation = wheelRotation + fullSpins + (360 - finalAngle);
+    const newRotation = wheelRotation + fullSpins + (360 - (wheelRotation % 360) - finalAngle);
     
     setWheelRotation(newRotation);
 
@@ -117,12 +115,6 @@ export default function RouletteGame() {
             case 'odd':
                 if (winningNumber % 2 !== 0) { isWin = true; payout = 2; }
                 break;
-            case 'low':
-                if (winningNumber >= 1 && winningNumber <= 18) { isWin = true; payout = 2; }
-                break;
-            case 'high':
-                if (winningNumber >= 19 && winningNumber <= 36) { isWin = true; payout = 2; }
-                break;
         }
 
         if (isWin) {
@@ -146,32 +138,39 @@ export default function RouletteGame() {
 
 
   return (
-    <div className="flex flex-col items-center gap-8 w-full max-w-4xl">
-        <div className="relative w-96 h-96">
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2 w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-t-[20px] border-t-primary z-20"></div>
-            <div className="absolute w-full h-full rounded-full border-[10px] border-yellow-700 bg-yellow-900 shadow-2xl">
-                 <div
-                    className="relative w-full h-full rounded-full transition-transform duration-5000 ease-out"
-                    style={{ transform: `rotate(${wheelRotation}deg)` }}
-                >
-                {numbers.map((num) => (
-                    <div key={num}
-                        className="absolute top-1/2 left-1/2 w-40 h-40 -m-20"
-                        style={{ transform: `rotate(${numberPositions[num].angle}deg) translate(8.75rem)` }}
+    <div className="flex flex-col items-center gap-8 w-full">
+        <div 
+          className="w-80 h-80 bg-gray-800 rounded-full flex items-center justify-center transition-transform duration-5000 ease-out"
+          style={{ transform: `rotate(${wheelRotation}deg)` }}
+        >
+            <div className="relative w-full h-full">
+                {numbers.map((num, i) => (
+                    <div
+                        key={num}
+                        className="absolute w-full h-full"
+                        style={{ transform: `rotate(${(i / numbers.length) * 360}deg)` }}
                     >
-                         <div className={cn("w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm", getNumberColorClass(num))}>
+                        <div
+                            className={cn(
+                                'absolute top-0 left-1/2 -ml-4 w-8 h-12 text-center text-white flex items-center justify-center font-bold',
+                                getNumberColorClass(num)
+                            )}
+                        >
                             {num}
                         </div>
                     </div>
                 ))}
-                <div className="absolute top-1/2 left-1/2 w-32 h-32 -m-16 bg-yellow-800 rounded-full border-4 border-yellow-700 shadow-inner"></div>
-             </div>
             </div>
+             <div className="absolute w-12 h-12 bg-gray-600 rounded-full border-4 border-gray-400" />
         </div>
+         {winningNumber !== null && !spinning && (
+            <div className="text-2xl font-bold p-4">Winning Number: <span className={cn('p-2 rounded', getNumberColorClass(winningNumber))}>{winningNumber}</span></div>
+        )}
+
       
       <div className="p-4 rounded-lg bg-card w-full">
         <div className="grid grid-cols-12 gap-1">
-          {numbers.slice(1).map(num => (
+          {numbers.filter(n => n !== 0).sort((a,b) => a-b).map(num => (
             <button key={num} onClick={() => placeBet('number', num)} disabled={spinning} className={cn("h-12 w-full rounded-md font-bold flex items-center justify-center relative transition-transform hover:scale-105", getNumberColorClass(num))}>
               {num}
               {getBetAmount('number', num) && <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-primary/70 border-2 border-primary-foreground text-primary-foreground text-xs flex items-center justify-center">{getBetAmount('number', num)}</div>}
@@ -183,21 +182,13 @@ export default function RouletteGame() {
                 0
                 {getBetAmount('number', 0) && <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-primary/70 border-2 border-primary-foreground text-primary-foreground text-xs flex items-center justify-center">{getBetAmount('number', 0)}</div>}
             </button>
-            <div className="col-span-2 grid grid-cols-3 gap-1">
-              {betOptions.slice(0,3).map(opt => (
+            <div className="col-span-2 grid grid-cols-2 gap-1">
+              {betOptions.map(opt => (
                 <button key={opt.label} onClick={() => placeBet(opt.type, opt.value)} disabled={spinning} className={cn("h-12 w-full rounded-md text-white font-bold flex items-center justify-center relative transition-transform hover:scale-105", opt.className)}>
                     {opt.label}
                     {getBetAmount(opt.type, opt.value) && <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-primary/70 border-2 border-primary-foreground text-primary-foreground text-xs flex items-center justify-center">{getBetAmount(opt.type, opt.value)}</div>}
                 </button>
               ))}
-            </div>
-             <div className="col-span-3 grid grid-cols-3 gap-1 mt-1">
-                 {betOptions.slice(3).map(opt => (
-                    <button key={opt.label} onClick={() => placeBet(opt.type, opt.value)} disabled={spinning} className={cn("h-12 w-full rounded-md text-white font-bold flex items-center justify-center relative transition-transform hover:scale-105", opt.className)}>
-                        {opt.label}
-                         {getBetAmount(opt.type, opt.value) && <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-primary/70 border-2 border-primary-foreground text-primary-foreground text-xs flex items-center justify-center">{getBetAmount(opt.type, opt.value)}</div>}
-                    </button>
-                ))}
             </div>
         </div>
       </div>
@@ -218,6 +209,11 @@ export default function RouletteGame() {
           Spin
         </Button>
       </div>
+       <style jsx>{`
+        .duration-5000 {
+            transition-duration: 5000ms;
+        }
+      `}</style>
     </div>
   );
 }
