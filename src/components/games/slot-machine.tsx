@@ -9,7 +9,7 @@ import { Apple, Star, DollarSign, Heart, Banana, Play, Gem, Gift, Bot } from 'lu
 import { useBalance } from '@/contexts/BalanceContext';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { Card, CardContent } from '../ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 
 const symbols = [Apple, Banana, Heart, Star, DollarSign];
 const scatterSymbol = Gem;
@@ -28,7 +28,7 @@ const Reel = ({ finalSymbols, isSpinning, reelIndex }: { finalSymbols: number[],
     const getSymbol = (index: number) => allSymbols[index] || allSymbols[0];
 
     return (
-        <div className="h-[192px] w-16 overflow-hidden bg-card/50 rounded-lg border-2 border-primary/50">
+        <div className="h-[320px] w-16 overflow-hidden bg-card/50 rounded-lg border-2 border-primary/50">
             <div
                 className="flex flex-col items-center justify-start"
                 style={{
@@ -48,7 +48,7 @@ const Reel = ({ finalSymbols, isSpinning, reelIndex }: { finalSymbols: number[],
 
 
 export default function SlotMachine() {
-    const [grid, setGrid] = useState<number[][]>(() => Array(5).fill(Array(3).fill(0)));
+    const [grid, setGrid] = useState<number[][]>(() => Array(5).fill(Array(5).fill(0)));
     const [spinning, setSpinning] = useState(false);
     const [winnings, setWinnings] = useState<number | null>(null);
     const [freeSpins, setFreeSpins] = useState(0);
@@ -78,7 +78,7 @@ export default function SlotMachine() {
         setSpinning(true);
 
         const newGrid = Array(5).fill(0).map(() =>
-            Array(3).fill(0).map(() => Math.floor(Math.random() * allSymbols.length))
+            Array(5).fill(0).map(() => Math.floor(Math.random() * allSymbols.length))
         );
 
         setTimeout(() => {
