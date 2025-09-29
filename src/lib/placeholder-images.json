@@ -1,3 +1,28 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "hero-background",
+      "description": "Abstract dark violet and gold background",
+      "imageUrl": "https://images.unsplash.com/photo-1557264322-b44d383a2906?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxhYnN0cmFjdCUyMGRhcmt8ZW58MHx8fHwxNzU5MDY0ODI1fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "abstract dark"
+    },
+    {
+      "id": "slots-card",
+      "description": "Image for the slots game card",
+      "imageUrl": "https://images.unsplash.com/photo-1643494112315-05bb07f49652?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxjYXNpbm8lMjBzbG90JTIwbWFjaGluZXxlbnwwfHx8fDE3NTkxMzI2NTl8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "casino slot machine"
+    },
+    {
+      "id": "roulette-card",
+      "description": "Image for the roulette game card",
+      "imageUrl": "https://images.unsplash.com/photo-1627831389670-d20f5a01c536?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxyb3VsZXR0ZSUyMHdoZWVsfGVufDB8fHx8MTc1OTA3OTEzNXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "roulette wheel"
+    },
+    {
+      "id": "crash-card",
+      "description": "Image for the crash game card",
+      "imageUrl": "https://images.unsplash.com/photo-1719947695325-0f4a30e22614?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxyb2NrZXQlMjBzcGFjZXxlbnwwfHx8fDE3NTkwMzI0MzF8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "rocket space"
+    }
+  ]
 }
