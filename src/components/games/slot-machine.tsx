@@ -9,6 +9,7 @@ import { Apple, Star, DollarSign, Heart, Banana, Play, Gem, Gift, Bot } from 'lu
 import { useBalance } from '@/contexts/BalanceContext';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
+import { Card, CardContent } from '../ui/card';
 
 const symbols = [Apple, Banana, Heart, Star, DollarSign];
 const scatterSymbol = Gem;
