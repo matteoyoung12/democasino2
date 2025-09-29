@@ -180,11 +180,11 @@ export default function MinesGame() {
           )}
 
           <div className="grid gap-2">
-            <Label htmlFor="bet-amount"><Wallet className="inline-block mr-2" />Bet Amount</Label>
+            <Label htmlFor="bet-amount" className="flex items-center gap-2"><Wallet />Bet Amount</Label>
             <Input id="bet-amount" type="number" value={betAmount} onChange={(e) => setBetAmount(parseFloat(e.target.value))} disabled={gameState === 'playing'} />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="mine-count"><Bomb className="inline-block mr-2" />Mines</Label>
+            <Label htmlFor="mine-count" className="flex items-center gap-2"><Bomb />Mines</Label>
             <Select value={String(mineCount)} onValueChange={(val) => setMineCount(Number(val))} disabled={gameState === 'playing'}>
               <SelectTrigger>
                 <SelectValue placeholder="Number of mines" />
