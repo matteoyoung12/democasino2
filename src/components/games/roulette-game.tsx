@@ -39,7 +39,7 @@ export default function RouletteGame() {
       toast({ title: 'Insufficient balance', variant: 'destructive' });
       return;
     }
-    setBalance(balance - betAmount);
+    setBalance(prev => prev - betAmount);
     setBets(prev => {
       const existingBet = prev.find(b => b.type === type && b.value === value);
       if (existingBet) {
@@ -56,6 +56,7 @@ export default function RouletteGame() {
     }
     setSpinning(true);
     setWinningNumber(null);
+    setDisplayNumber(null);
 
     let spinCount = 0;
     const interval = setInterval(() => {
@@ -74,14 +75,16 @@ export default function RouletteGame() {
   useEffect(() => {
     if (winningNumber !== null) {
       let winnings = 0;
+      let totalBetAmount = 0;
       bets.forEach(bet => {
+        totalBetAmount += bet.amount;
         if (bet.type === 'number' && bet.value === winningNumber) {
-          winnings += bet.amount * 36; // 35:1 payout + original bet
+          winnings += bet.amount * 35;
         }
       });
 
       if (winnings > 0) {
-        setBalance(prev => prev + winnings);
+        setBalance(prev => prev + winnings + totalBetAmount);
         toast({ title: 'You Win!', description: `Won ${winnings.toFixed(2)} credits on number ${winningNumber}.` });
       } else {
         toast({ title: 'You Lose', description: `The winning number was ${winningNumber}.`, variant: 'destructive' });
