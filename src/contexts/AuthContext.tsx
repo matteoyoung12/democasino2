@@ -50,7 +50,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         createdAt: new Date()
       });
 
-    } catch (error: any) {
+    } catch (error) {
       console.error('Sign up error:', error);
       throw error;
     }
