@@ -16,7 +16,8 @@ import {
   Coins,
   CircleDollarSign,
   Palette,
-  Spade
+  Spade,
+  UserPlus
 } from "lucide-react";
 import Logo from "@/components/logo";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -226,6 +227,12 @@ function TopNav() {
                                 <Link href="/login">
                                     <LogOut className="mr-2 h-4 w-4" />
                                     <span>Login</span>
+                                </Link>
+                            </DropdownMenuItem>
+                             <DropdownMenuItem asChild>
+                                <Link href="/signup">
+                                    <UserPlus className="mr-2 h-4 w-4" />
+                                    <span>Sign Up</span>
                                 </Link>
                             </DropdownMenuItem>
                         </>}

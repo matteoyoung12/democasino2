@@ -9,7 +9,8 @@ import {
     createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
     signOut,
-    User
+    User,
+    updateProfile
 } from 'firebase/auth';
 
 type AuthContextType = {
@@ -37,8 +38,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const signup = async (email: string, password: string, displayName: string) => {
-    // This function is disabled
-    return Promise.reject(new Error("Registration is currently disabled."));
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    if (userCredential.user) {
+        await updateProfile(userCredential.user, { displayName });
+    }
+    return userCredential;
   };
 
   const login = (email: string, password: string) => {

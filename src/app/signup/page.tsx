@@ -12,10 +12,11 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 
-export default function LoginPage() {
+export default function SignupPage() {
+  const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { user, login } = useAuth();
+  const { user, signup } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -25,14 +26,14 @@ export default function LoginPage() {
     }
   }, [user, router]);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await login(email, password);
+      await signup(email, password, displayName);
       router.push('/dashboard');
     } catch (error: any) {
       toast({
-        title: 'Login Failed',
+        title: 'Sign Up Failed',
         description: error.message,
         variant: 'destructive',
       });
@@ -44,36 +45,35 @@ export default function LoginPage() {
       <Card className="mx-auto w-full max-w-sm border-primary/20 shadow-lg shadow-primary/10">
         <CardHeader className="text-center">
           <Logo className="mx-auto mb-2 text-3xl" />
-          <CardTitle className="font-headline text-2xl">Login</CardTitle>
-          <CardDescription>Enter your email below to login to your account</CardDescription>
+          <CardTitle className="font-headline text-2xl">Create an account</CardTitle>
+          <CardDescription>Enter your details below to create your account</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin}>
+          <form onSubmit={handleSignup}>
             <div className="grid gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="display-name">Display Name</Label>
+                <Input id="display-name" placeholder="Your Name" required value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
+              </div>
               <div className="grid gap-2">
                 <Label htmlFor="email">Email</Label>
                 <Input id="email" type="email" placeholder="m@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} />
               </div>
               <div className="grid gap-2">
-                <div className="flex items-center">
-                  <Label htmlFor="password">Password</Label>
-                  <Link href="#" className="ml-auto inline-block text-sm text-primary hover:underline">
-                    Forgot your password?
-                  </Link>
-                </div>
+                <Label htmlFor="password">Password</Label>
                 <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
               </div>
               <Button type="submit" className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
-                Login
+                Create account
               </Button>
-               <div className="mt-4 text-center text-sm">
-                Don&apos;t have an account?{' '}
-                <Link href="/signup" className="text-primary underline">
-                  Sign up
-                </Link>
-              </div>
             </div>
           </form>
+          <div className="mt-4 text-center text-sm">
+            Already have an account?{' '}
+            <Link href="/login" className="text-primary underline">
+              Log in
+            </Link>
+          </div>
         </CardContent>
       </Card>
     </div>

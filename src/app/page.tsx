@@ -20,12 +20,22 @@ export default function Home() {
         />
       )}
        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background" />
+
+      <header className="absolute top-0 right-0 p-4">
+        <Button asChild variant="outline" className="border-primary bg-transparent text-primary hover:bg-primary/10">
+          <Link href="/signup">Sign Up</Link>
+        </Button>
+      </header>
+      
       <div className="relative z-10 flex flex-col items-center p-8 text-center">
         <Logo className="mb-4 text-6xl md:text-8xl" />
         <p className="mt-4 max-w-2xl text-lg text-foreground/80 md:text-xl">
           Experience the thrill of our exclusive online casino. Fair play, big wins, and endless entertainment await.
         </p>
         <div className="mt-8 flex flex-col gap-4 sm:flex-row">
+          <Button asChild variant="default" size="lg" className="px-8 py-6 text-lg">
+             <Link href="/dashboard">View Games</Link>
+          </Button>
           <Button asChild variant="outline" size="lg" className="border-primary bg-transparent px-8 py-6 text-lg text-primary transition-colors hover:bg-primary/10 hover:text-primary">
             <Link href="/login">Login</Link>
           </Button>
