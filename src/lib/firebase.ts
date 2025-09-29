@@ -2,13 +2,6 @@ import { initializeApp, getApps } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
-// Debug: Check if environment variables are loading
-console.log('Environment check:', {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY ? 'Loaded' : 'MISSING',
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ? 'Loaded' : 'MISSING',
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ? 'Loaded' : 'MISSING',
-});
-
 // Your web app's Firebase configuration
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -26,17 +19,10 @@ if (!firebaseConfig.apiKey) {
 
 // Initialize Firebase
 let app;
-try {
-  if (!getApps().length) {
-    app = initializeApp(firebaseConfig);
-    console.log('Firebase initialized successfully');
-  } else {
-    app = getApps()[0];
-    console.log('Using existing Firebase app');
-  }
-} catch (error) {
-  console.error('Firebase initialization error:', error);
-  throw error;
+if (!getApps().length) {
+  app = initializeApp(firebaseConfig);
+} else {
+  app = getApps()[0];
 }
 
 const auth = getAuth(app);
