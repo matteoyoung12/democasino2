@@ -25,9 +25,6 @@ export default function Home() {
           Experience the thrill of our exclusive online casino. Fair play, big wins, and endless entertainment await.
         </p>
         <div className="mt-8 flex flex-col gap-4 sm:flex-row">
-          <Button asChild size="lg" className="bg-primary px-8 py-6 text-lg text-primary-foreground transition-transform hover:scale-105 hover:bg-primary/90">
-            <Link href="/signup">Join Now</Link>
-          </Button>
           <Button asChild variant="outline" size="lg" className="border-primary bg-transparent px-8 py-6 text-lg text-primary transition-colors hover:bg-primary/10 hover:text-primary">
             <Link href="/login">Login</Link>
           </Button>

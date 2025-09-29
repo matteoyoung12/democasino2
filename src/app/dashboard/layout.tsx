@@ -228,12 +228,6 @@ function TopNav() {
                                     <span>Login</span>
                                 </Link>
                             </DropdownMenuItem>
-                             <DropdownMenuItem asChild>
-                                <Link href="/signup">
-                                    <User className="mr-2 h-4 w-4" />
-                                    <span>Sign Up</span>
-                                </Link>
-                            </DropdownMenuItem>
                         </>}
                     </DropdownMenuContent>
                 </DropdownMenu>

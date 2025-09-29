@@ -9,8 +9,6 @@ import {
     createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
     signOut,
-    sendEmailVerification,
-    updateProfile,
     User
 } from 'firebase/auth';
 
@@ -31,13 +29,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        // If user is logged in but email is not verified, and it's not a new user
-        // You might want to handle this case, e.g., by logging them out or showing a message
-        setUser(user);
-      } else {
-        setUser(null);
-      }
+      setUser(user);
       setLoading(false);
     });
 
@@ -45,12 +37,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const signup = async (email: string, password: string, displayName: string) => {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    if(userCredential.user) {
-        await updateProfile(userCredential.user, { displayName });
-        await sendEmailVerification(userCredential.user);
-    }
-    return userCredential;
+    // This function is disabled
+    return Promise.reject(new Error("Registration is currently disabled."));
   };
 
   const login = (email: string, password: string) => {
