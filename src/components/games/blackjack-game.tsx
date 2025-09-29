@@ -11,6 +11,8 @@ import { Label } from '@/components/ui/label';
 import { Play, Wallet } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { translations } from '@/lib/translations';
 
 type Suit = 'H' | 'D' | 'C' | 'S';
 type Rank = '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '10' | 'J' | 'Q' | 'K' | 'A';
@@ -101,6 +103,8 @@ const CardComponent = ({ card, hidden, cardIndex, handSize }: { card?: CardType,
 
 
 export default function BlackjackGame() {
+    const { language } = useLanguage();
+    const t = translations[language];
     const [deck, setDeck] = useState<CardType[]>([]);
     const [playerHand, setPlayerHand] = useState<HandType>([]);
     const [dealerHand, setDealerHand] = useState<HandType>([]);
@@ -108,14 +112,18 @@ export default function BlackjackGame() {
     const [dealerScore, setDealerScore] = useState(0);
     const [gameState, setGameState] = useState<GameState>('betting');
     const [betAmount, setBetAmount] = useState(10);
-    const [message, setMessage] = useState('Place your bet to start.');
+    const [message, setMessage] = useState(t.placeYourBet);
 
     const { balance, setBalance } = useBalance();
     const { toast } = useToast();
 
+    useEffect(() => {
+        setMessage(t.placeYourBet);
+    }, [language]);
+
     const deal = () => {
         if (betAmount <= 0 || betAmount > balance) {
-            toast({ title: "Invalid bet amount", variant: "destructive" });
+            toast({ title: t.invalidBetAmount, variant: "destructive" });
             return;
         }
 
@@ -185,32 +193,32 @@ export default function BlackjackGame() {
 
             let resultMessage = '';
             if (pScore > 21) {
-                resultMessage = `You Busted with ${pScore}!`;
-                toast({ title: "You Lose!", description: resultMessage, variant: "destructive" });
+                resultMessage = `${t.youBustedWith} ${pScore}!`;
+                toast({ title: t.youLose, description: resultMessage, variant: "destructive" });
             } else if (dScore > 21) {
-                resultMessage = `Dealer Busted with ${dScore}! You win!`;
+                resultMessage = `${t.dealerBustedWith} ${dScore}! ${t.youWin}!`;
                 setBalance(prev => prev + betAmount * 2);
-                toast({ title: "You Win!", description: resultMessage });
+                toast({ title: t.youWin, description: resultMessage });
             } else if (pScore === 21 && finalPlayerHand.length === 2) {
-                 resultMessage = `Blackjack! You win!`;
+                 resultMessage = `Blackjack! ${t.youWin}!`;
                 setBalance(prev => prev + betAmount * 2.5); // Blackjack payout 3:2
                 toast({ title: "Blackjack!", description: resultMessage });
             } else if (pScore > dScore) {
-                resultMessage = `You Win with ${pScore} to ${dScore}!`;
+                resultMessage = `${t.youWinWith} ${pScore} ${t.to} ${dScore}!`;
                 setBalance(prev => prev + betAmount * 2);
-                toast({ title: "You Win!", description: resultMessage });
+                toast({ title: t.youWin, description: resultMessage });
             } else if (pScore < dScore) {
-                resultMessage = `You Lose with ${pScore} to ${dScore}.`;
-                toast({ title: "You Lose!", description: resultMessage, variant: "destructive" });
+                resultMessage = `${t.youLoseWith} ${pScore} ${t.to} ${dScore}.`;
+                toast({ title: t.youLose, description: resultMessage, variant: "destructive" });
             } else {
-                resultMessage = "Push! It's a tie.";
+                resultMessage = t.pushTie;
                 setBalance(prev => prev + betAmount); // Return bet
-                toast({ title: "It's a tie!", description: resultMessage });
+                toast({ title: t.itsATie, description: resultMessage });
             }
             setMessage(resultMessage);
             setGameState('finished');
         }, 1000);
-    }, [betAmount, setBalance, toast]);
+    }, [betAmount, setBalance, toast, t]);
 
     useEffect(() => {
         if(gameState === 'playing') {
@@ -221,7 +229,7 @@ export default function BlackjackGame() {
 
     const HandDisplay = ({ hand, title, score, isDealer }: { hand: HandType, title: string, score: number, isDealer?: boolean }) => (
         <div className="flex flex-col items-center gap-4 w-full">
-            <h2 className="text-2xl font-bold text-white drop-shadow-lg">{title} - Score: {score}</h2>
+            <h2 className="text-2xl font-bold text-white drop-shadow-lg">{title} - {t.score}: {score}</h2>
             <div className="relative h-40 w-full flex justify-center items-center">
                 {hand.map((card, index) => {
                     const isHidden = isDealer && index === 1 && gameState === 'playing';
@@ -250,11 +258,11 @@ export default function BlackjackGame() {
                     <CardTitle className="text-center text-white font-headline text-4xl drop-shadow-md">Blackjack</CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-col items-center gap-6 min-h-[500px] justify-around">
-                    <HandDisplay hand={dealerHand} title="Dealer's Hand" score={gameState === 'playing' ? getHandScore(dealerHand.slice(0,1)) : getHandScore(dealerHand)} isDealer />
+                    <HandDisplay hand={dealerHand} title={t.dealersHand} score={gameState === 'playing' ? getHandScore(dealerHand.slice(0,1)) : getHandScore(dealerHand)} isDealer />
                     
                     <div className="h-10 text-xl font-bold text-white bg-black/30 rounded-lg px-4 py-2 flex items-center justify-center">{message}</div>
 
-                    <HandDisplay hand={playerHand} title="Your Hand" score={getHandScore(playerHand)} />
+                    <HandDisplay hand={playerHand} title={t.yourHand} score={getHandScore(playerHand)} />
                 </CardContent>
                 <CardFooter className="flex flex-col gap-4 bg-black/20 p-4">
                      
@@ -262,16 +270,16 @@ export default function BlackjackGame() {
                             {gameState === 'betting' && (
                                 <div className="flex flex-col items-center gap-4 w-full max-w-sm mx-auto">
                                     <div className="grid gap-2 w-full">
-                                        <Label htmlFor="bet-amount" className="flex items-center gap-2 text-white"><Wallet />Bet Amount</Label>
+                                        <Label htmlFor="bet-amount" className="flex items-center gap-2 text-white"><Wallet />{t.betAmount}</Label>
                                         <Input id="bet-amount" type="number" value={betAmount} onChange={(e) => setBetAmount(parseFloat(e.target.value) || 0)} className="bg-white/90 text-black"/>
                                     </div>
-                                    <Button onClick={deal} size="lg" className="h-14 w-full text-xl"><Play className="mr-2"/>Deal</Button>
+                                    <Button onClick={deal} size="lg" className="h-14 w-full text-xl"><Play className="mr-2"/>{t.deal}</Button>
                                 </div>
                             )}
                             {gameState === 'playing' && (
                                 <div className="flex gap-4">
-                                    <Button onClick={hit} size="lg" className="h-16 text-xl">Hit</Button>
-                                    <Button onClick={stand} size="lg" className="h-16 text-xl">Stand</Button>
+                                    <Button onClick={hit} size="lg" className="h-16 text-xl">{t.hit}</Button>
+                                    <Button onClick={stand} size="lg" className="h-16 text-xl">{t.stand}</Button>
                                 </div>
                             )}
                             {gameState === 'finished' && (
@@ -279,9 +287,9 @@ export default function BlackjackGame() {
                                     setGameState('betting');
                                     setPlayerHand([]);
                                     setDealerHand([]);
-                                    setMessage('Place your bet to start.');
+                                    setMessage(t.placeYourBet);
                                 }} size="lg" className="h-16 text-xl">
-                                    Play Again
+                                    {t.playAgain}
                                 </Button>
                             )}
                         </>

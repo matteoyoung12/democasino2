@@ -17,6 +17,8 @@ import {
 } from "@/components/ui/select"
 import { useBalance } from '@/contexts/BalanceContext';
 import Link from 'next/link';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { translations } from '@/lib/translations';
 
 
 type Tile = {
@@ -33,6 +35,9 @@ const createInitialGrid = (): Tile[] => {
 }
 
 export default function MinesGame() {
+  const { language } = useLanguage();
+  const t = translations[language];
+
   const [gameState, setGameState] = useState<GameState>('betting');
   const [grid, setGrid] = useState<Tile[]>(createInitialGrid());
   const [betAmount, setBetAmount] = useState(10);
@@ -72,11 +77,11 @@ export default function MinesGame() {
 
   const startGame = () => {
     if (betAmount <= 0) {
-      toast({ title: "Invalid bet amount", variant: 'destructive' });
+      toast({ title: t.invalidBetAmount, variant: 'destructive' });
       return;
     }
     if (balance < betAmount) {
-      toast({ title: "Insufficient balance", variant: 'destructive' });
+      toast({ title: t.insufficientBalance, variant: 'destructive' });
       return;
     }
 
@@ -105,7 +110,7 @@ export default function MinesGame() {
     if (newGrid[index].isMine) {
       setGameState('busted');
       toast({
-        title: 'BOOM! You hit a mine.',
+        title: t.boom,
         variant: 'destructive',
       });
       // Reveal all mines
@@ -123,8 +128,8 @@ export default function MinesGame() {
     const winnings = betAmount * currentMultiplier;
     setBalance(prev => prev + winnings);
     toast({
-        title: "Cashed Out!",
-        description: `You won ${winnings.toFixed(2)} credits.`,
+        title: t.cashedOut,
+        description: `${t.youWonAmount} ${winnings.toFixed(2)} ${t.credits}.`,
     });
     setGameState('betting');
     const finalGrid = grid.map(tile => ({...tile, isRevealed: true}));
@@ -169,14 +174,14 @@ export default function MinesGame() {
         <CardContent className="p-4 grid gap-4">
             <>
               <div className="grid gap-2">
-                <Label htmlFor="bet-amount" className="flex items-center gap-2"><Wallet /> Bet Amount</Label>
+                <Label htmlFor="bet-amount" className="flex items-center gap-2"><Wallet /> {t.betAmount}</Label>
                 <Input id="bet-amount" type="number" value={betAmount} onChange={(e) => setBetAmount(parseFloat(e.target.value))} disabled={gameState === 'playing'} />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="mine-count" className="flex items-center gap-2"><Bomb /> Mines</Label>
+                <Label htmlFor="mine-count" className="flex items-center gap-2"><Bomb /> {t.mines}</Label>
                 <Select value={String(mineCount)} onValueChange={(val) => setMineCount(Number(val))} disabled={gameState === 'playing'}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Number of mines" />
+                    <SelectValue placeholder={t.numberOfMines} />
                   </SelectTrigger>
                   <SelectContent>
                     {[...Array(24).keys()].map(i => i + 1).map(i => (
@@ -188,26 +193,26 @@ export default function MinesGame() {
 
               {(gameState === 'playing' || gameState === 'busted') && (
                 <div className="flex flex-col items-start gap-1 col-span-2 border-t pt-4 mt-4">
-                    <p>Gems Found: <span className="font-bold text-primary">{revealedGems}</span></p>
-                    <p>Current: <span className="font-bold text-primary">{currentMultiplier.toFixed(2)}x</span></p>
-                    <p>Next: <span className="font-bold text-green-500">{nextMultiplier.toFixed(2)}x</span></p>
+                    <p>{t.gemsFound}: <span className="font-bold text-primary">{revealedGems}</span></p>
+                    <p>{t.current}: <span className="font-bold text-primary">{currentMultiplier.toFixed(2)}x</span></p>
+                    <p>{t.next}: <span className="font-bold text-green-500">{nextMultiplier.toFixed(2)}x</span></p>
                 </div>
               )}
 
               {gameState === 'playing' ? (
                 <Button onClick={handleCashout} disabled={!isCashingOut} size="lg" className="h-16 w-full text-xl bg-green-500 hover:bg-green-600">
-                  <PiggyBank className="mr-2" /> Cash Out { (betAmount * currentMultiplier).toFixed(2) }
+                  <PiggyBank className="mr-2" /> {t.cashOut} { (betAmount * currentMultiplier).toFixed(2) }
                 </Button>
               ) : gameState === 'busted' ? (
                 <Button onClick={() => {
                     setGameState('betting');
                     setGrid(createInitialGrid());
                 }} size="lg" className="h-16 w-full text-xl">
-                    <Play className="mr-2"/> Play Again
+                    <Play className="mr-2"/> {t.playAgain}
                 </Button>
               ) : (
                 <Button onClick={startGame} size="lg" className="h-16 w-full text-xl bg-primary text-primary-foreground hover:bg-primary/90">
-                    <Play className="mr-2"/> Place Bet
+                    <Play className="mr-2"/> {t.placeBet}
                 </Button>
               )}
             </>

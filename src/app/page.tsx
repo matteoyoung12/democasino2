@@ -1,12 +1,19 @@
 
+"use client";
+
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import Logo from '@/components/logo';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { translations } from '@/lib/translations';
+import { LanguageProvider } from '@/contexts/LanguageContext';
 
-export default function Home() {
+function HomePageContent() {
   const heroImage = PlaceHolderImages.find((p) => p.id === 'hero-background');
+  const { language } = useLanguage();
+  const t = translations[language];
 
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-background">
@@ -24,14 +31,23 @@ export default function Home() {
       <div className="relative z-10 flex flex-col items-center p-8 text-center">
         <Logo className="mb-4 text-6xl md:text-8xl" />
         <p className="mt-4 max-w-2xl text-lg text-foreground/80 md:text-xl">
-          Experience the thrill of our exclusive online casino. Fair play, big wins, and endless entertainment await.
+          {t.heroSlogan}
         </p>
         <div className="mt-8 flex flex-col gap-4 sm:flex-row">
           <Button asChild variant="default" size="lg" className="px-8 py-6 text-lg">
-             <Link href="/dashboard">View Games</Link>
+             <Link href="/dashboard">{t.viewGames}</Link>
           </Button>
         </div>
       </div>
     </div>
   );
+}
+
+
+export default function Home() {
+  return (
+    <LanguageProvider>
+      <HomePageContent />
+    </LanguageProvider>
+  )
 }

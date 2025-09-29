@@ -17,7 +17,8 @@ import {
   CircleDollarSign,
   Palette,
   Spade,
-  UserPlus
+  UserPlus,
+  Languages
 } from "lucide-react";
 import Logo from "@/components/logo";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -52,16 +53,18 @@ import { useToast } from "@/hooks/use-toast";
 import { BalanceProvider, useBalance } from "@/contexts/BalanceContext";
 import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
 import { cn } from "@/lib/utils";
+import { LanguageProvider, useLanguage } from "@/contexts/LanguageContext";
+import { translations } from "@/lib/translations";
 
 
 const menuItems = [
-  { href: "/dashboard", label: "Lobby", icon: LayoutGrid },
-  { href: "/dashboard/slots", label: "Slots", icon: Gem },
-  { href: "/dashboard/roulette", label: "Roulette", icon: Dice5 },
-  { href: "/dashboard/crash", label: "Crash", icon: Rocket },
-  { href: "/dashboard/mines", label: "Mines", icon: Bomb },
-  { href: "/dashboard/coin-flip", label: "Coin Flip", icon: Coins },
-  { href: "/dashboard/blackjack", label: "Blackjack", icon: Spade },
+  { href: "/dashboard", labelKey: "lobby", icon: LayoutGrid },
+  { href: "/dashboard/slots", labelKey: "slots", icon: Gem },
+  { href: "/dashboard/roulette", labelKey: "roulette", icon: Dice5 },
+  { href: "/dashboard/crash", labelKey: "crash", icon: Rocket },
+  { href: "/dashboard/mines", labelKey: "mines", icon: Bomb },
+  { href: "/dashboard/coin-flip", labelKey: "coin_flip", icon: Coins },
+  { href: "/dashboard/blackjack", labelKey: "blackjack", icon: Spade },
 ];
 
 
@@ -69,12 +72,14 @@ function DepositDialog() {
     const { balance, setBalance } = useBalance();
     const [amount, setAmount] = useState(100);
     const { toast } = useToast();
+    const { language } = useLanguage();
+    const t = translations[language];
 
     const handleDeposit = () => {
         setBalance(balance + amount);
         toast({
-            title: "Deposit Successful",
-            description: `You have added $${amount.toFixed(2)} to your balance.`,
+            title: t.depositSuccessful,
+            description: `${t.youHaveAdded} $${amount.toFixed(2)} ${t.toYourBalance}.`,
         });
     }
 
@@ -87,15 +92,15 @@ function DepositDialog() {
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                    <DialogTitle>Make a Deposit</DialogTitle>
+                    <DialogTitle>{t.makeDeposit}</DialogTitle>
                     <DialogDescription>
-                        Enter the amount you would like to deposit into your account.
+                        {t.enterDepositAmount}
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="amount" className="text-right">
-                            Amount
+                            {t.amount}
                         </Label>
                         <Input
                             id="amount"
@@ -106,7 +111,7 @@ function DepositDialog() {
                         />
                     </div>
                 </div>
-                <Button onClick={handleDeposit} type="submit">Deposit</Button>
+                <Button onClick={handleDeposit} type="submit">{t.deposit}</Button>
             </DialogContent>
         </Dialog>
     )
@@ -150,9 +155,30 @@ function ThemeSelector() {
     );
 }
 
+function LanguageSwitcher() {
+    const { setLanguage } = useLanguage();
+    return (
+        <Popover>
+            <PopoverTrigger asChild>
+                <Button variant="outline" className="h-auto">
+                    <Languages className="h-5 w-5 text-primary" />
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-2">
+                <div className="flex flex-col gap-2">
+                    <Button variant="ghost" onClick={() => setLanguage('en')}>English</Button>
+                    <Button variant="ghost" onClick={() => setLanguage('ru')}>Русский</Button>
+                </div>
+            </PopoverContent>
+        </Popover>
+    );
+}
+
 function TopNav() {
     const pathname = usePathname();
     const { balance } = useBalance();
+    const { language } = useLanguage();
+    const t = translations[language];
 
     return (
         <header className="sticky top-0 z-10 flex h-20 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm sm:px-6">
@@ -174,7 +200,7 @@ function TopNav() {
                                     </Button>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                    <p>{item.label}</p>
+                                    <p>{t[item.labelKey as keyof typeof t]}</p>
                                 </TooltipContent>
                             </Tooltip>
                         ))}
@@ -188,6 +214,7 @@ function TopNav() {
                 </div>
                 <DepositDialog />
                 <ThemeSelector />
+                <LanguageSwitcher />
                  <Avatar className="h-11 w-11 border-2 border-primary/50">
                     <AvatarImage src={"https://picsum.photos/seed/user/100/100"} />
                     <AvatarFallback>G</AvatarFallback>
@@ -218,10 +245,12 @@ export default function DashboardLayout({
     children: React.ReactNode;
 }) {
     return (
-        <ThemeProvider>
-            <BalanceProvider>
-                <DashboardLayoutContent>{children}</DashboardLayoutContent>
-            </BalanceProvider>
-        </ThemeProvider>
+        <LanguageProvider>
+            <ThemeProvider>
+                <BalanceProvider>
+                    <DashboardLayoutContent>{children}</DashboardLayoutContent>
+                </BalanceProvider>
+            </ThemeProvider>
+        </LanguageProvider>
     );
 }

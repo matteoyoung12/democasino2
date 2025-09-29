@@ -11,6 +11,8 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import Link from 'next/link';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { translations } from '@/lib/translations';
 
 const symbols = [
     { icon: Apple, color: 'text-green-500' },
@@ -74,6 +76,9 @@ const Reel = ({ symbols, spinning, finalSymbols, winningCells }: { symbols: numb
 
 
 export default function SlotMachine() {
+    const { language } = useLanguage();
+    const t = translations[language];
+
     const [grid, setGrid] = useState<number[][]>(() => Array(5).fill(null).map(() => Array(5).fill(0)));
     const [spinning, setSpinning] = useState(false);
     const [winnings, setWinnings] = useState<number | null>(null);
@@ -89,7 +94,7 @@ export default function SlotMachine() {
         if (spinning) return;
 
         if (!isFreeSpin && balance < betAmount) {
-            toast({ title: "Not enough balance", variant: "destructive" });
+            toast({ title: t.notEnoughBalance, variant: "destructive" });
             setIsAutoPlay(false);
             return;
         }
@@ -115,15 +120,15 @@ export default function SlotMachine() {
             setSpinning(false);
             checkWin(newGrid, isFreeSpin);
         }, 1500); // Wait for spin animation to finish
-    }, [balance, betAmount, spinning, setBalance, toast]);
+    }, [balance, betAmount, spinning, setBalance, toast, t]);
 
     const buyBonus = () => {
         if (balance < bonusBuyCost) {
-            toast({ title: "Not enough balance for Bonus Buy", variant: "destructive" });
+            toast({ title: t.notEnoughBalanceForBonus, variant: "destructive" });
             return;
         }
         setBalance(prev => prev - bonusBuyCost);
-        toast({ title: "Bonus Purchased!", description: "10 Free Spins awarded." });
+        toast({ title: t.bonusPurchased, description: t.freeSpinsAwarded.replace('{count}', '10') });
         setFreeSpins(10);
     }
 
@@ -143,7 +148,7 @@ export default function SlotMachine() {
         const scatterCount = finalGrid.flat().filter(symbolIndex => symbolIndex === allSymbols.indexOf(scatterSymbol)).length;
         if (scatterCount >= 3) {
             const newSpins = 10;
-            toast({ title: "Free Spins Triggered!", description: `You won ${newSpins} free spins.` });
+            toast({ title: t.freeSpinsTriggered, description: t.freeSpinsAwarded.replace('{count}', String(newSpins)) });
             setFreeSpins(prev => prev + newSpins);
             winFound = true;
             
@@ -182,9 +187,9 @@ export default function SlotMachine() {
         if (totalWinnings > 0) {
             setWinnings(totalWinnings);
             setBalance(prev => prev + totalWinnings);
-            toast({ title: `You Won!`, description: `You won ${totalWinnings.toFixed(2)} credits!` });
+            toast({ title: t.youWon, description: `${t.youWonAmount} ${totalWinnings.toFixed(2)} ${t.credits}!` });
         } else if (!winFound && !isFreeSpin) {
-            toast({ title: "Try Again!", description: "No win this time.", duration: 2000 });
+            toast({ title: t.tryAgain, description: t.noWin, duration: 2000 });
         }
         setWinningCells(newWinningCells);
     };
@@ -218,13 +223,13 @@ export default function SlotMachine() {
 
             {winnings !== null && winnings > 0 && (
                 <div className="text-3xl font-bold text-accent animate-bounce">
-                    + {winnings.toFixed(2)} Credits!
+                    + {winnings.toFixed(2)} {t.credits}!
                 </div>
             )}
 
             {freeSpins > 0 && (
                 <div className="text-2xl font-bold text-primary">
-                    Free Spins Remaining: {freeSpins}
+                    {t.freeSpinsRemaining}: {freeSpins}
                 </div>
             )}
              
@@ -233,24 +238,24 @@ export default function SlotMachine() {
                      
                         <>
                              <div className="text-xl w-full text-center p-2 bg-card rounded-md">
-                                Balance: <span className="font-bold text-primary">{balance.toFixed(2)} Credits</span>
+                                {t.balance}: <span className="font-bold text-primary">{balance.toFixed(2)} {t.credits}</span>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="grid gap-2">
-                                    <Label htmlFor="bet-amount">Bet Amount</Label>
+                                    <Label htmlFor="bet-amount">{t.betAmount}</Label>
                                     <Input id="bet-amount" type="number" value={betAmount} onChange={handleBetChange} disabled={spinning || isAutoPlay || freeSpins > 0} />
                                 </div>
                                 <Button onClick={buyBonus} disabled={spinning || isAutoPlay || freeSpins > 0 || balance < bonusBuyCost} variant="outline" className="self-end h-10 border-accent text-accent hover:bg-accent/20">
-                                    <Gift className="mr-2"/> Buy Bonus (${bonusBuyCost})
+                                    <Gift className="mr-2"/> {t.buyBonus} (${bonusBuyCost})
                                 </Button>
                             </div>
                             <div className="flex gap-2 w-full">
                                 <Button onClick={() => spin(false)} disabled={spinning || isAutoPlay || freeSpins > 0} size="lg" className="w-full h-16 text-xl bg-primary text-primary-foreground hover:bg-primary/90">
-                                    {spinning ? 'Spinning...' : `Spin`}
+                                    {spinning ? t.spinning : t.spin}
                                     {!spinning && <Play className="ml-2" />}
                                 </Button>
                                 <Button onClick={() => setIsAutoPlay(!isAutoPlay)} disabled={spinning || freeSpins > 0} size="lg" variant={isAutoPlay ? 'secondary' : 'outline'} className="w-full h-16 text-xl">
-                                    <Bot className="mr-2" /> {isAutoPlay ? 'Stop Auto' : 'Auto Play'}
+                                    <Bot className="mr-2" /> {isAutoPlay ? t.stopAuto : t.autoPlay}
                                 </Button>
                             </div>
                         </>

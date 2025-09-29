@@ -11,6 +11,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Rocket, Wallet, Target, Play, Zap } from 'lucide-react';
 import { useBalance } from '@/contexts/BalanceContext';
 import Link from 'next/link';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { translations } from '@/lib/translations';
 
 type GameState = 'idle' | 'betting' | 'running' | 'crashed' | 'cashed_out';
 
@@ -47,6 +49,9 @@ const generateCurveData = (crashPoint: number) => {
 };
 
 export default function CrashGame() {
+  const { language } = useLanguage();
+  const t = translations[language];
+
   const [gameState, setGameState] = useState<GameState>('idle');
   const [betAmount, setBetAmount] = useState(10);
   const [autoCashout, setAutoCashout] = useState(2.0);
@@ -86,10 +91,10 @@ export default function CrashGame() {
       setBalance(prev => prev + wonAmount);
       setGameState('cashed_out');
       toast({
-        title: cashoutMultiplier === autoCashout ? 'Auto Cashed Out!' : 'Cashed Out!',
-        description: `You won ${wonAmount.toFixed(2)} credits at ${cashoutMultiplier.toFixed(2)}x!`,
+        title: cashoutMultiplier === autoCashout ? t.autoCashedOut : t.cashedOut,
+        description: `${t.youWonAmount} ${wonAmount.toFixed(2)} ${t.creditsAt} ${cashoutMultiplier.toFixed(2)}x!`,
       });
-  }, [betAmount, autoCashout, setBalance, toast]);
+  }, [betAmount, autoCashout, setBalance, toast, t]);
 
   const runGame = useCallback(() => {
     gameStartTime.current = performance.now();
@@ -131,8 +136,8 @@ export default function CrashGame() {
             setMultiplier(crashPoint.current);
             setGameState('crashed');
             toast({
-              title: 'CRASHED!',
-              description: `The rocket crashed at ${crashPoint.current.toFixed(2)}x.`,
+              title: t.crashedTitle,
+              description: `${t.rocketCrashedAt} ${crashPoint.current.toFixed(2)}x.`,
               variant: 'destructive',
             });
         } else if (gameStateRef.current === 'cashed_out') {
@@ -142,14 +147,14 @@ export default function CrashGame() {
       }
     };
     animationFrameId.current = requestAnimationFrame(animate);
-  }, [autoCashout, handleCashout, toast]);
+  }, [autoCashout, handleCashout, toast, t]);
 
 
   const startGameSequence = useCallback(async () => {
     let countdown = 3;
     const countdownInterval = setInterval(async () => {
       if (countdown > 0) {
-        toast({ title: `Game starting in ${countdown}...`, duration: 1000 });
+        toast({ title: `${t.gameStartingIn} ${countdown}...`, duration: 1000 });
         countdown--;
       } else {
         clearInterval(countdownInterval);
@@ -160,24 +165,24 @@ export default function CrashGame() {
           
           if (!fullCurveData.current || fullCurveData.current.length === 0) throw new Error('Invalid curve data.');
 
-          toast({ title: 'GO!', description: 'The rocket is launching!' });
+          toast({ title: t.go, description: t.rocketLaunching });
           runGame();
 
         } catch (error) {
-           toast({ title: 'Error', description: 'Could not start game. Please try again.', variant: 'destructive' });
+           toast({ title: t.error, description: t.couldNotStartGame, variant: 'destructive' });
            resetGame();
         }
       }
     }, 1000);
-  }, [resetGame, runGame, toast]);
+  }, [resetGame, runGame, toast, t]);
 
   const handleBet = () => {
     if (betAmount <= 0) {
-      toast({ title: 'Invalid Bet', description: 'Bet must be greater than zero.', variant: 'destructive' });
+      toast({ title: t.invalidBet, description: t.betMustBePositive, variant: 'destructive' });
       return;
     }
      if (balance < betAmount) {
-      toast({ title: 'Insufficient balance', variant: 'destructive' });
+      toast({ title: t.insufficientBalance, variant: 'destructive' });
       return;
     }
     resetGame();
@@ -189,15 +194,15 @@ export default function CrashGame() {
   const renderButton = () => {
     switch (gameState) {
       case 'running':
-        return <Button onClick={() => handleCashout(multiplier)} size="lg" className="h-16 w-full bg-green-500 text-xl hover:bg-green-600"><Zap className="mr-2" />Cash Out</Button>;
+        return <Button onClick={() => handleCashout(multiplier)} size="lg" className="h-16 w-full bg-green-500 text-xl hover:bg-green-600"><Zap className="mr-2" />{t.cashOut}</Button>;
       case 'betting':
-        return <Button disabled size="lg" className="h-16 w-full text-xl">Starting...</Button>;
+        return <Button disabled size="lg" className="h-16 w-full text-xl">{t.starting}</Button>;
       case 'cashed_out':
-        return <Button disabled size="lg" className="h-16 w-full text-xl bg-green-500">Cashed Out!</Button>;
+        return <Button disabled size="lg" className="h-16 w-full text-xl bg-green-500">{t.cashedOut}</Button>;
       case 'crashed':
-         return <Button onClick={handleBet} size="lg" className="h-16 w-full bg-primary text-xl text-primary-foreground hover:bg-primary/90"><Play className="mr-2" />Play Again</Button>;
+         return <Button onClick={handleBet} size="lg" className="h-16 w-full bg-primary text-xl text-primary-foreground hover:bg-primary/90"><Play className="mr-2" />{t.playAgain}</Button>;
       default:
-        return <Button onClick={handleBet} size="lg" className="h-16 w-full bg-primary text-xl text-primary-foreground hover:bg-primary/90"><Play className="mr-2" />Place Bet</Button>;
+        return <Button onClick={handleBet} size="lg" className="h-16 w-full bg-primary text-xl text-primary-foreground hover:bg-primary/90"><Play className="mr-2" />{t.placeBet}</Button>;
     }
   };
 
@@ -216,8 +221,8 @@ export default function CrashGame() {
             <p className={`font-headline font-bold transition-colors duration-300 ${getMultiplierColor()}`} style={{ fontSize: 'clamp(3rem, 10vw, 6rem)' }}>
               {multiplier.toFixed(2)}x
             </p>
-            {gameState === 'crashed' && winnings === 0 && <p className="text-2xl font-semibold text-destructive">CRASHED</p>}
-            {(gameState === 'cashed_out' || (gameState === 'crashed' && winnings > 0)) && <p className="text-2xl font-semibold text-green-500">YOU WON {winnings.toFixed(2)}</p>}
+            {gameState === 'crashed' && winnings === 0 && <p className="text-2xl font-semibold text-destructive">{t.crashed.toUpperCase()}</p>}
+            {(gameState === 'cashed_out' || (gameState === 'crashed' && winnings > 0)) && <p className="text-2xl font-semibold text-green-500">{t.youWon.toUpperCase()} {winnings.toFixed(2)}</p>}
           </div>
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={chartData}>
@@ -237,16 +242,16 @@ export default function CrashGame() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Rocket /> Controls</CardTitle>
+          <CardTitle className="flex items-center gap-2"><Rocket />{t.controls}</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4">
           {renderButton()}
           <div className="grid gap-2">
-            <Label htmlFor="bet-amount" className="flex items-center gap-2"><Wallet />Bet Amount</Label>
+            <Label htmlFor="bet-amount" className="flex items-center gap-2"><Wallet />{t.betAmount}</Label>
             <Input id="bet-amount" type="number" value={betAmount} onChange={(e) => setBetAmount(parseFloat(e.target.value))} disabled={gameState === 'running' || gameState === 'betting' || gameState === 'cashed_out'} />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="auto-cashout" className="flex items-center gap-2"><Target />Auto Cash Out</Label>
+            <Label htmlFor="auto-cashout" className="flex items-center gap-2"><Target />{t.autoCashOut}</Label>
             <Input id="auto-cashout" type="number" value={autoCashout} onChange={(e) => setAutoCashout(parseFloat(e.target.value) || 0)} placeholder="2.0" disabled={gameState === 'running' || gameState === 'betting' || gameState === 'cashed_out'} />
           </div>
         </CardContent>

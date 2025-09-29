@@ -8,6 +8,8 @@ import { cn } from '@/lib/utils';
 import { Play } from 'lucide-react';
 import { useBalance } from '@/contexts/BalanceContext';
 import Link from 'next/link';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { translations } from '@/lib/translations';
 
 const numbers = [
   0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26
@@ -34,14 +36,17 @@ type Bet = {
   amount: number;
 };
 
-const betOptions: {type: BetType, value: BetValue, label: string, payout: number, className: string}[] = [
-    { type: 'even', value: 'even', label: 'Even', payout: 2, className: 'bg-zinc-700' },
-    { type: 'red', value: 'red', label: 'Red', payout: 2, className: 'bg-red-600' },
-    { type: 'black', value: 'black', label: 'Black', payout: 2, className: 'bg-black' },
-    { type: 'odd', value: 'odd', label: 'Odd', payout: 2, className: 'bg-zinc-700' },
-]
-
 export default function RouletteGame() {
+  const { language } = useLanguage();
+  const t = translations[language];
+
+  const betOptions: {type: BetType, value: BetValue, label: string, payout: number, className: string}[] = [
+    { type: 'even', value: 'even', label: t.even, payout: 2, className: 'bg-zinc-700' },
+    { type: 'red', value: 'red', label: t.red, payout: 2, className: 'bg-red-600' },
+    { type: 'black', value: 'black', label: t.black, payout: 2, className: 'bg-black' },
+    { type: 'odd', value: 'odd', label: t.odd, payout: 2, className: 'bg-zinc-700' },
+  ]
+
   const [bets, setBets] = useState<Bet[]>([]);
   const { balance, setBalance } = useBalance();
   const [chipAmount, setChipAmount] = useState(10);
@@ -53,7 +58,7 @@ export default function RouletteGame() {
   const placeBet = (type: BetType, value: BetValue) => {
     if (spinning) return;
     if (balance < chipAmount) {
-      toast({ title: 'Insufficient balance', variant: 'destructive' });
+      toast({ title: t.insufficientBalance, variant: 'destructive' });
       return;
     }
     setBalance(prev => prev - chipAmount);
@@ -72,7 +77,7 @@ export default function RouletteGame() {
 
   const spinWheel = useCallback(() => {
     if (bets.length === 0) {
-      toast({ title: 'No bets placed', description: 'Please place a bet before spinning.' });
+      toast({ title: t.noBetsPlaced, description: t.placeBetBeforeSpin });
       return;
     }
     setSpinning(true);
@@ -89,7 +94,7 @@ export default function RouletteGame() {
         setWinningNumber(finalNumber);
     }, 5000); // Corresponds to animation duration
 
-  }, [bets.length, toast, wheelRotation]);
+  }, [bets.length, toast, wheelRotation, t]);
 
   useEffect(() => {
     if (winningNumber === null || spinning === false) return;
@@ -125,16 +130,16 @@ export default function RouletteGame() {
 
     if (totalWinnings > 0) {
       setBalance(prev => prev + totalWinnings);
-      toast({ title: 'You Win!', description: `Won ${totalWinnings.toFixed(2)} credits. The number was ${winningNumber}.` });
+      toast({ title: t.youWin, description: `${t.won} ${totalWinnings.toFixed(2)} ${t.credits}. ${t.theNumberWas} ${winningNumber}.` });
     } else {
-      toast({ title: 'You Lose', description: `The winning number was ${winningNumber}.`, variant: 'destructive' });
+      toast({ title: t.youLose, description: `${t.theWinningNumberWas} ${winningNumber}.`, variant: 'destructive' });
     }
     
     setTimeout(() => {
       setBets([]);
       setSpinning(false);
     }, 3000);
-  }, [winningNumber, spinning, bets, setBalance, toast]);
+  }, [winningNumber, spinning, bets, setBalance, toast, t]);
 
 
   return (
@@ -171,7 +176,7 @@ export default function RouletteGame() {
             </div>
         </div>
          {winningNumber !== null && !spinning && (
-            <div className="text-2xl font-bold p-4">Winning Number: <span className={cn('p-2 rounded', getNumberColorClass(winningNumber))}>{winningNumber}</span></div>
+            <div className="text-2xl font-bold p-4">{t.winningNumber}: <span className={cn('p-2 rounded', getNumberColorClass(winningNumber))}>{winningNumber}</span></div>
         )}
 
       
@@ -200,10 +205,10 @@ export default function RouletteGame() {
                     </div>
                 </div>
                 <div className="flex flex-col sm:flex-row items-center gap-4 w-full p-4 bg-card rounded-lg mt-4">
-                    <div className="text-lg">Balance: <span className="font-bold text-primary">{balance.toFixed(2)}</span></div>
+                    <div className="text-lg">{t.balance}: <span className="font-bold text-primary">{balance.toFixed(2)}</span></div>
                     <div className="flex-grow" />
                     <div className="flex items-center gap-2">
-                        <span className="text-lg">Chip:</span>
+                        <span className="text-lg">{t.chip}:</span>
                         {[1, 5, 10, 25, 100].map(amount => (
                             <Button key={amount} variant={chipAmount === amount ? 'secondary' : 'outline'} onClick={() => setChipAmount(amount)} disabled={spinning} className={chipAmount === amount ? 'bg-primary' : ''}>
                                 {amount}
@@ -212,7 +217,7 @@ export default function RouletteGame() {
                     </div>
                     <Button onClick={spinWheel} disabled={spinning || bets.length === 0} size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90">
                     <Play className="mr-2 h-5 w-5"/>
-                    Spin
+                    {t.spin}
                     </Button>
                 </div>
             </>

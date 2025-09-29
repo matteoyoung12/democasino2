@@ -1,4 +1,6 @@
 
+"use client";
+
 import Image from 'next/image';
 import Link from 'next/link';
 import {
@@ -11,53 +13,58 @@ import {
 import { Button } from '@/components/ui/button';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { ArrowRight } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { translations } from '@/lib/translations';
 
 const games = [
   {
     id: 'slots',
-    title: '3x3 Slots',
-    description: 'Classic 3x3 slot machine fun. Spin the reels and match the symbols to win big!',
+    titleKey: 'slotsTitle',
+    descriptionKey: 'slotsDescription',
     href: '/dashboard/slots',
     imageId: 'slots-card',
   },
   {
     id: 'roulette',
-    title: 'European Roulette',
-    description: 'Place your bets and watch the wheel spin. Predict the right number to win!',
+    titleKey: 'rouletteTitle',
+    descriptionKey: 'rouletteDescription',
     href: '/dashboard/roulette',
     imageId: 'roulette-card',
   },
   {
     id: 'crash',
-    title: 'Crash Game',
-    description: 'Watch the multiplier grow, but cash out before it crashes! A game of nerve and timing.',
+    titleKey: 'crashTitle',
+    descriptionKey: 'crashDescription',
     href: '/dashboard/crash',
     imageId: 'crash-card',
   },
   {
     id: 'mines',
-    title: 'Mines',
-    description: 'Uncover gems and avoid the mines. The more you find, the bigger the prize!',
+    titleKey: 'minesTitle',
+    descriptionKey: 'minesDescription',
     href: '/dashboard/mines',
     imageId: 'mines-card',
   },
   {
     id: 'coin-flip',
-    title: 'Coin Flip',
-    description: 'Heads or tails? A simple game of chance with a 50/50 outcome. Bet on the flip!',
+    titleKey: 'coinFlipTitle',
+    descriptionKey: 'coinFlipDescription',
     href: '/dashboard/coin-flip',
     imageId: 'coin-flip-card',
   },
   {
     id: 'blackjack',
-    title: 'Blackjack',
-    description: 'Get as close to 21 as you can without going over. Beat the dealer and win!',
+    titleKey: 'blackjackTitle',
+    descriptionKey: 'blackjackDescription',
     href: '/dashboard/blackjack',
     imageId: 'blackjack-card',
   }
 ];
 
 export default function DashboardPage() {
+  const { language } = useLanguage();
+  const t = translations[language];
+
   return (
     <main className="p-4 sm:p-6 lg:p-8">
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -84,13 +91,13 @@ export default function DashboardPage() {
                 )}
               </CardHeader>
               <div className="flex flex-grow flex-col p-6">
-                <CardTitle className="mb-2 font-headline text-2xl">{game.title}</CardTitle>
-                <CardDescription className="flex-grow">{game.description}</CardDescription>
+                <CardTitle className="mb-2 font-headline text-2xl">{t[game.titleKey as keyof typeof t]}</CardTitle>
+                <CardDescription className="flex-grow">{t[game.descriptionKey as keyof typeof t]}</CardDescription>
               </div>
               <CardFooter>
                 <Button asChild className="w-full bg-primary text-primary-foreground transition-all duration-300 hover:bg-primary/90 hover:scale-105">
                   <Link href={game.href}>
-                    Play Now <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+                    {t.playNow} <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
                   </Link>
                 </Button>
               </CardFooter>
