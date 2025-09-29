@@ -44,6 +44,7 @@ export default function MinesGame() {
   const { toast } = useToast();
 
   useEffect(() => {
+    // Initialize grid on client-side only
     setGrid(createInitialGrid());
   }, []);
 
@@ -153,15 +154,15 @@ export default function MinesGame() {
   const isCashingOut = gameState === 'playing' && revealedGems > 0;
 
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-      <div className="lg:col-span-2 grid grid-cols-5 gap-2 p-4 bg-card rounded-lg">
+    <div className="grid grid-cols-1 gap-6 md:grid-cols-5 w-full max-w-4xl">
+      <div className="md:col-span-3 grid grid-cols-5 gap-2 p-4 bg-card rounded-lg">
         {gameState === 'betting' 
          ? Array(GRID_SIZE).fill(0).map((_, i) => <div key={i} className="aspect-square rounded-lg bg-card/50" />)
          : renderGrid()
         }
       </div>
 
-      <Card>
+      <Card className="md:col-span-2">
         <CardHeader>
           <CardTitle>Game Controls</CardTitle>
         </CardHeader>
