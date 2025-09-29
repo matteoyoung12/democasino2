@@ -58,10 +58,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      console.log('Attempting sign in with:', email);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      console.log('Sign in successful:', userCredential.user);
     } catch (error: any) {
-      console.error('Sign in error:', error);
-      throw error;
+      console.error('Sign in error details:', error);
+      
+      // Специфичные ошибки Firebase
+      switch (error.code) {
+        case 'auth/invalid-email':
+          throw new Error('Invalid email address.');
+        case 'auth/user-disabled':
+          throw new Error('This account has been disabled.');
+        case 'auth/user-not-found':
+          throw new Error('No account found with this email.');
+        case 'auth/wrong-password':
+          throw new Error('Incorrect password.');
+        case 'auth/configuration-not-found':
+          throw new Error('Firebase configuration error. Please contact support.');
+        default:
+          throw new Error('Failed to sign in. Please try again.');
+      }
     }
   };
 
