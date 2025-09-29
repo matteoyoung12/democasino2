@@ -43,9 +43,9 @@ const games = [
     imageUrl: 'https://picsum.photos/seed/gp3/400/200',
   },
    {
-    id: 'slots',
-    titleKey: 'slotsTitle',
-    href: '/dashboard/slots',
+    id: 'plinko',
+    titleKey: 'plinkoTitle',
+    href: '/dashboard/plinko',
     imageUrl: 'https://picsum.photos/seed/gp4/400/200',
   },
   {

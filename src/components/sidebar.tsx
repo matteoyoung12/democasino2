@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -15,7 +16,8 @@ import {
   Rocket,
   Bomb,
   Gem,
-  Spade
+  Spade,
+  Disc
 } from "lucide-react";
 import Logo from "@/components/logo";
 import {
@@ -47,7 +49,7 @@ const RouletteIcon = (props: React.SVGProps<SVGSVGElement>) => (
 
 
 const gameItems = [
-  { href: "/dashboard/slots", labelKey: "slots", icon: Gem },
+  { href: "/dashboard/plinko", labelKey: "plinko", icon: Disc },
   { href: "/dashboard/roulette", labelKey: "roulette", icon: RouletteIcon },
   { href: "/dashboard/crash", labelKey: "crash", icon: Rocket },
   { href: "/dashboard/mines", labelKey: "mines", icon: Bomb },

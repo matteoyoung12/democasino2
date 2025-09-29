@@ -6,7 +6,7 @@ import { AreaChart, Area, YAxis, XAxis, ResponsiveContainer } from 'recharts';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Rocket, Wallet, Target, Play, Zap } from 'lucide-react';
 import { useBalance } from '@/contexts/BalanceContext';
@@ -210,12 +210,12 @@ export default function CrashGame() {
     if (gameState === 'crashed' && winnings === 0) return 'text-destructive';
     if (gameState === 'cashed_out' || (gameState === 'crashed' && winnings > 0)) return 'text-green-500';
     if (gameState === 'crashed') return 'text-destructive';
-    return 'text-primary';
+    return 'text-accent';
   };
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-      <Card className="lg:col-span-2">
+      <Card className="lg:col-span-2 bg-card/80 backdrop-blur-sm">
         <CardContent className="relative aspect-video p-2 sm:p-4">
           <div className="absolute inset-0 top-1/2 left-1/2 z-10 -translate-x-1/2 -translate-y-1/2 text-center">
             <p className={`font-headline font-bold transition-colors duration-300 ${getMultiplierColor()}`} style={{ fontSize: 'clamp(3rem, 10vw, 6rem)' }}>
@@ -240,7 +240,7 @@ export default function CrashGame() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="bg-card/80 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Rocket />{t.controls}</CardTitle>
         </CardHeader>

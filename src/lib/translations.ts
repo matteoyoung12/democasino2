@@ -39,6 +39,7 @@ export const translations = {
     mines: 'Mines',
     coin_flip: 'Coin Flip',
     blackjack: 'Blackjack',
+    plinko: 'Plinko',
 
     // Landing page
     heroSlogan: 'Experience the thrill of our exclusive online casino. Fair play, big wins, and endless entertainment await.',
@@ -65,6 +66,8 @@ export const translations = {
     coinFlipDescription: 'Heads or tails? A simple game of chance with a 50/50 outcome. Bet on the flip!',
     blackjackTitle: 'Blackjack',
     blackjackDescription: 'Get as close to 21 as you can without going over. Beat the dealer and win!',
+    plinkoTitle: 'Plinko',
+    plinkoDescription: 'Drop the ball and watch it bounce to a multiplier. Simple, fun, and exciting!',
     
     // Blackjack
     dealersHand: "Dealer's Hand",
@@ -137,10 +140,19 @@ export const translations = {
     tryAgain: "Try Again!",
     noWin: "No win this time.",
     freeSpinsRemaining: "Free Spins Remaining",
-    buyBonus: "Buy Bonus",
+buyBonus: "Buy Bonus",
     spinning: "Spinning...",
     stopAuto: "Stop Auto",
-    autoPlay: "Auto Play"
+    autoPlay: "Auto Play",
+    
+    // Plinko
+    drop: "Drop",
+    dropping: "Dropping...",
+    risk: "Risk",
+    low: "Low",
+    medium: "Medium",
+    high: "High",
+    rows: "Rows",
   },
   ru: {
     // General
@@ -181,6 +193,7 @@ export const translations = {
     mines: 'Мины',
     coin_flip: 'Монетка',
     blackjack: 'Блэкджек',
+    plinko: 'Плинко',
 
     // Landing page
     heroSlogan: 'Испытайте азарт нашего эксклюзивного онлайн-казино. Честная игра, большие выигрыши и бесконечное развлечение ждут вас.',
@@ -207,6 +220,8 @@ export const translations = {
     coinFlipDescription: 'Орел или решка? Простая игра на удачу с вероятностью 50/50. Сделайте ставку на результат!',
     blackjackTitle: 'Блэкджек',
     blackjackDescription: 'Наберите как можно ближе к 21, но не больше. Победите дилера и выиграйте!',
+    plinkoTitle: 'Плинко',
+    plinkoDescription: 'Бросайте шарик и смотрите, как он отскакивает к множителю. Просто, весело и увлекательно!',
 
     // Blackjack
     dealersHand: "Рука дилера",
@@ -259,7 +274,7 @@ export const translations = {
     // Roulette
     even: 'Четное',
     red: 'Красное',
-    black: 'Черное',
+black: 'Черное',
     odd: 'Нечетное',
     noBetsPlaced: 'Ставки не сделаны',
     placeBetBeforeSpin: 'Пожалуйста, сделайте ставку перед вращением.',
@@ -282,6 +297,15 @@ export const translations = {
     buyBonus: "Купить бонус",
     spinning: "Вращение...",
     stopAuto: "Стоп Авто",
-    autoPlay: "Авто-игра"
+    autoPlay: "Авто-игра",
+    
+    // Plinko
+    drop: "Бросить",
+    dropping: "Бросаем...",
+    risk: "Риск",
+    low: "Низкий",
+    medium: "Средний",
+    high: "Высокий",
+    rows: "Ряды",
   }
 };

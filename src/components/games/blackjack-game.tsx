@@ -10,7 +10,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Play, Wallet } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import Link from 'next/link';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { translations } from '@/lib/translations';
 
@@ -52,24 +51,20 @@ const getHandScore = (hand: HandType): number => {
 }
 
 const CardComponent = ({ card, hidden, cardIndex, handSize }: { card?: CardType, hidden?: boolean, cardIndex: number, handSize: number }) => {
-    const animationDelay = `${cardIndex * 100}ms`;
+    const animationDelay = `${cardIndex * 150}ms`;
     
-    // Calculate the offset to center the hand
-    const handWidth = handSize * 40 + (handSize > 0 ? (handSize - 1) * 16 : 0);
-    const totalOffset = -handWidth / 2;
-    const cardOffset = cardIndex * (40 + 16); // 40 is width of the card, 16 is gap
-    
-    const transformStyle = `translateX(calc(-50% + ${totalOffset + cardOffset}px))`;
+    // Animate cards fanning out
+    const rotation = (cardIndex - (handSize - 1) / 2) * 5;
+    const translateY = Math.abs(cardIndex - (handSize - 1) / 2) * 5;
 
     if (hidden) {
         return (
              <div 
-                className="w-24 h-36 bg-blue-700 rounded-lg border-2 border-blue-900 absolute"
+                className="w-24 h-36 bg-primary/20 rounded-lg border-2 border-primary/50 absolute transition-all duration-300"
                 style={{ 
                     animation: `dealCard 0.5s ease-out forwards`, 
-                    animationDelay, 
-                    left: '50%',
-                    transform: transformStyle
+                    animationDelay,
+                    transform: `rotate(${rotation}deg) translateY(${translateY}px) translateX(0px)`,
                 }}
             ></div>
         );
@@ -79,19 +74,18 @@ const CardComponent = ({ card, hidden, cardIndex, handSize }: { card?: CardType,
     }
 
     const suitSymbols = { H: '♥', D: '♦', C: '♣', S: '♠' };
-    const suitColor = ['H', 'D'].includes(card.suit) ? 'text-red-500' : 'text-black';
+    const suitColor = ['H', 'D'].includes(card.suit) ? 'text-red-500' : 'text-foreground';
 
     return (
         <div 
             className={cn(
-                "w-24 h-36 bg-white rounded-lg p-2 flex flex-col justify-between border-2 border-gray-300 shadow-lg absolute",
-                "transition-all duration-500 ease-out"
+                "w-24 h-36 bg-card rounded-lg p-2 flex flex-col justify-between border-2 border-border shadow-lg absolute transition-all duration-300",
+                "hover:scale-110 hover:-translate-y-4 z-20"
             )}
             style={{ 
                 animation: `dealCard 0.5s ease-out forwards`,
                 animationDelay,
-                left: '50%', 
-                transform: transformStyle,
+                transform: `rotate(${rotation}deg) translateY(${translateY}px) translateX(0px)`,
             }}
         >
             <div className={`text-xl font-bold ${suitColor}`}>{card.rank}</div>
@@ -101,15 +95,12 @@ const CardComponent = ({ card, hidden, cardIndex, handSize }: { card?: CardType,
     );
 };
 
-
 export default function BlackjackGame() {
     const { language } = useLanguage();
     const t = translations[language];
     const [deck, setDeck] = useState<CardType[]>([]);
     const [playerHand, setPlayerHand] = useState<HandType>([]);
     const [dealerHand, setDealerHand] = useState<HandType>([]);
-    const [playerScore, setPlayerScore] = useState(0);
-    const [dealerScore, setDealerScore] = useState(0);
     const [gameState, setGameState] = useState<GameState>('betting');
     const [betAmount, setBetAmount] = useState(10);
     const [message, setMessage] = useState(t.placeYourBet);
@@ -140,7 +131,7 @@ export default function BlackjackGame() {
         setMessage('');
 
         if (getHandScore(playerInitialHand) === 21) {
-            setTimeout(() => endGame(playerInitialHand, dealerInitialHand, newDeck), 500);
+            setTimeout(() => stand(playerInitialHand), 500);
         }
     }
 
@@ -154,42 +145,42 @@ export default function BlackjackGame() {
         setPlayerHand(newHand);
 
         if (getHandScore(newHand) > 21) {
-            setTimeout(() => endGame(newHand, dealerHand, newDeck), 500);
+            setTimeout(() => stand(newHand), 500);
         }
     }
 
-    const stand = () => {
-        if (gameState !== 'playing') return;
-        endGame(playerHand, dealerHand, deck);
-    }
-    
-    const endGame = useCallback((finalPlayerHand: HandType, finalDealerHand: HandType, currentDeck: CardType[]) => {
+    const stand = useCallback((currentHand?: HandType) => {
+        if (gameState !== 'playing' && gameState !== 'dealer') return;
+        const finalPlayerHand = currentHand || playerHand;
+        
         setGameState('dealer');
 
-        let tempDealerHand = [...finalDealerHand];
-        let tempDeck = [...currentDeck];
+        let tempDealerHand = [...dealerHand];
+        let tempDeck = [...deck];
         
-        const dealerTurn = (currentDealerHand: HandType, deck: CardType[]): { finalHand: HandType, finalDeck: CardType[] } => {
-            let hand = [...currentDealerHand];
-            let d = [...deck];
-            while(getHandScore(hand) < 17) {
-                const newCard = d.pop();
-                if(newCard) hand.push(newCard);
-                else break;
+        const dealerTurn = () => {
+            const score = getHandScore(tempDealerHand);
+            if (score < 17) {
+                const newCard = tempDeck.pop();
+                if (newCard) {
+                    tempDealerHand.push(newCard);
+                    setDealerHand([...tempDealerHand]);
+                    setTimeout(dealerTurn, 500);
+                } else {
+                     endGame(finalPlayerHand, tempDealerHand);
+                }
+            } else {
+                endGame(finalPlayerHand, tempDealerHand);
             }
-            return { finalHand: hand, finalDeck: d };
         };
 
-        const { finalHand: newDealerHand, finalDeck: newDeck } = dealerTurn(tempDealerHand, tempDeck);
+        setTimeout(dealerTurn, 500);
         
-        setTimeout(() => {
-            setDealerHand(newDealerHand);
-            setDeck(newDeck);
-            
+    }, [deck, dealerHand, playerHand, gameState]);
+    
+    const endGame = (finalPlayerHand: HandType, finalDealerHand: HandType) => {
             const pScore = getHandScore(finalPlayerHand);
-            const dScore = getHandScore(newDealerHand);
-            setPlayerScore(pScore);
-            setDealerScore(dScore);
+            const dScore = getHandScore(finalDealerHand);
 
             let resultMessage = '';
             if (pScore > 21) {
@@ -217,19 +208,15 @@ export default function BlackjackGame() {
             }
             setMessage(resultMessage);
             setGameState('finished');
-        }, 1000);
-    }, [betAmount, setBalance, toast, t]);
+    };
 
-    useEffect(() => {
-        if(gameState === 'playing') {
-            setPlayerScore(getHandScore(playerHand));
-            setDealerScore(getHandScore(dealerHand.slice(0,1))); // Only show score of first card
-        }
-    }, [playerHand, dealerHand, gameState]);
-
-    const HandDisplay = ({ hand, title, score, isDealer }: { hand: HandType, title: string, score: number, isDealer?: boolean }) => (
-        <div className="flex flex-col items-center gap-4 w-full">
-            <h2 className="text-2xl font-bold text-white drop-shadow-lg">{title} - {t.score}: {score}</h2>
+    const HandDisplay = ({ hand, title, isDealer }: { hand: HandType, title: string, isDealer?: boolean }) => {
+      const score = getHandScore(hand);
+      const displayedScore = isDealer && gameState === 'playing' ? getHandScore([hand[0]]) : score;
+      
+      return (
+        <div className="flex flex-col items-center gap-4 w-full h-48">
+            <h2 className="text-2xl font-bold text-foreground">{title} - {t.score}: {displayedScore}</h2>
             <div className="relative h-40 w-full flex justify-center items-center">
                 {hand.map((card, index) => {
                     const isHidden = isDealer && index === 1 && gameState === 'playing';
@@ -243,58 +230,55 @@ export default function BlackjackGame() {
                 })}
             </div>
         </div>
-    );
+    )};
     
     return (
         <div className="flex flex-col items-center gap-4 w-full">
              <style jsx>{`
                 @keyframes dealCard {
-                    from { transform: translateY(-200px) translateX(-50%) rotate(0deg); opacity: 0; }
-                    to { opacity: 1; }
+                    from { transform: translateY(-100px) rotate(0deg) scale(0.8); opacity: 0; }
+                    to { opacity: 1; transform: translateY(0) rotate(var(--rotation, 0)) scale(1); }
                 }
             `}</style>
-            <Card className="w-full bg-green-700/70 border-green-900/50 shadow-2xl">
+            <Card className="w-full bg-card/80 backdrop-blur-sm border-border shadow-2xl">
                 <CardHeader>
-                    <CardTitle className="text-center text-white font-headline text-4xl drop-shadow-md">Blackjack</CardTitle>
+                    <CardTitle className="text-center text-foreground font-headline text-4xl drop-shadow-md">Blackjack</CardTitle>
                 </CardHeader>
-                <CardContent className="flex flex-col items-center gap-6 min-h-[500px] justify-around">
-                    <HandDisplay hand={dealerHand} title={t.dealersHand} score={gameState === 'playing' ? getHandScore(dealerHand.slice(0,1)) : getHandScore(dealerHand)} isDealer />
+                <CardContent className="flex flex-col items-center gap-8 min-h-[500px] justify-around p-4 md:p-6">
+                    <HandDisplay hand={dealerHand} title={t.dealersHand} isDealer />
                     
-                    <div className="h-10 text-xl font-bold text-white bg-black/30 rounded-lg px-4 py-2 flex items-center justify-center">{message}</div>
+                    <div className="h-12 text-xl font-bold text-foreground bg-background/50 rounded-lg px-4 py-2 flex items-center justify-center shadow-inner">
+                        {message}
+                    </div>
 
-                    <HandDisplay hand={playerHand} title={t.yourHand} score={getHandScore(playerHand)} />
+                    <HandDisplay hand={playerHand} title={t.yourHand} />
                 </CardContent>
-                <CardFooter className="flex flex-col gap-4 bg-black/20 p-4">
-                     
-                        <>
-                            {gameState === 'betting' && (
-                                <div className="flex flex-col items-center gap-4 w-full max-w-sm mx-auto">
-                                    <div className="grid gap-2 w-full">
-                                        <Label htmlFor="bet-amount" className="flex items-center gap-2 text-white"><Wallet />{t.betAmount}</Label>
-                                        <Input id="bet-amount" type="number" value={betAmount} onChange={(e) => setBetAmount(parseFloat(e.target.value) || 0)} className="bg-white/90 text-black"/>
-                                    </div>
-                                    <Button onClick={deal} size="lg" className="h-14 w-full text-xl"><Play className="mr-2"/>{t.deal}</Button>
-                                </div>
-                            )}
-                            {gameState === 'playing' && (
-                                <div className="flex gap-4">
-                                    <Button onClick={hit} size="lg" className="h-16 text-xl">{t.hit}</Button>
-                                    <Button onClick={stand} size="lg" className="h-16 text-xl">{t.stand}</Button>
-                                </div>
-                            )}
-                            {gameState === 'finished' && (
-                                <Button onClick={() => {
-                                    setGameState('betting');
-                                    setPlayerHand([]);
-                                    setDealerHand([]);
-                                    setMessage(t.placeYourBet);
-                                }} size="lg" className="h-16 text-xl">
-                                    {t.playAgain}
-                                </Button>
-                            )}
-                        </>
-                    
-                    {(gameState === 'dealer' || gameState === 'playing' || gameState === 'finished') && <div className="h-16"/>}
+                <CardFooter className="flex flex-col gap-4 bg-background/30 p-4">
+                    {gameState === 'betting' && (
+                        <div className="flex flex-col items-center gap-4 w-full max-w-sm mx-auto">
+                            <div className="grid gap-2 w-full">
+                                <Label htmlFor="bet-amount" className="flex items-center gap-2 text-foreground"><Wallet />{t.betAmount}</Label>
+                                <Input id="bet-amount" type="number" value={betAmount} onChange={(e) => setBetAmount(parseFloat(e.target.value) || 0)} className="bg-background text-foreground"/>
+                            </div>
+                            <Button onClick={deal} size="lg" className="h-14 w-full text-xl"><Play className="mr-2"/>{t.deal}</Button>
+                        </div>
+                    )}
+                    {gameState === 'playing' && (
+                        <div className="flex gap-4">
+                            <Button onClick={hit} size="lg" className="h-16 text-xl">{t.hit}</Button>
+                            <Button onClick={() => stand()} size="lg" variant="secondary" className="h-16 text-xl">{t.stand}</Button>
+                        </div>
+                    )}
+                    {gameState === 'finished' && (
+                        <Button onClick={() => {
+                            setGameState('betting');
+                            setPlayerHand([]);
+                            setDealerHand([]);
+                            setMessage(t.placeYourBet);
+                        }} size="lg" className="h-16 text-xl">
+                            {t.playAgain}
+                        </Button>
+                    )}
                 </CardFooter>
             </Card>
         </div>
