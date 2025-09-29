@@ -10,18 +10,11 @@ const firebaseConfig = {
   projectId: "studio-5422558187-9cb0a",
   storageBucket: "studio-5422558187-9cb0a.firebasestorage.app",
   messagingSenderId: "32584903617",
-  appId: "1:32584903617:web:524484075845749940dd40"
+  appId: "1:32584903617:web:169d11286b7031a540dd40"
 };
 
-// Initialize Firebase
-let app;
-
-if (!getApps().length) {
-  app = initializeApp(firebaseConfig);
-} else {
-  app = getApp();
-}
-
+// Initialize Firebase for SSR
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
 const db = getFirestore(app);
 
