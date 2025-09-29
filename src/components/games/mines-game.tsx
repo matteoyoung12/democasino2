@@ -33,7 +33,7 @@ const createInitialGrid = (): Tile[] => {
 
 export default function MinesGame() {
   const [gameState, setGameState] = useState<GameState>('betting');
-  const [grid, setGrid] = useState<Tile[]>([]);
+  const [grid, setGrid] = useState<Tile[]>(createInitialGrid());
   const [betAmount, setBetAmount] = useState(10);
   const [mineCount, setMineCount] = useState(3);
   const [revealedGems, setRevealedGems] = useState(0);
@@ -42,11 +42,6 @@ export default function MinesGame() {
   const { balance, setBalance } = useBalance();
 
   const { toast } = useToast();
-
-  useEffect(() => {
-    // Initialize grid on client-side only
-    setGrid(createInitialGrid());
-  }, []);
 
   const calculateMultiplier = (gemsFound: number, mines: number) => {
     const totalTiles = GRID_SIZE;
@@ -154,15 +149,15 @@ export default function MinesGame() {
   const isCashingOut = gameState === 'playing' && revealedGems > 0;
 
   return (
-    <div className="grid grid-cols-1 gap-6 md:grid-cols-5 w-full max-w-4xl">
-      <div className="md:col-span-3 grid grid-cols-5 gap-2 p-4 bg-card rounded-lg">
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 w-full">
+      <div className="lg:col-span-2 grid grid-cols-5 gap-2.5 p-4 bg-card rounded-lg">
         {gameState === 'betting' 
          ? Array(GRID_SIZE).fill(0).map((_, i) => <div key={i} className="aspect-square rounded-lg bg-card/50" />)
          : renderGrid()
         }
       </div>
 
-      <Card className="md:col-span-2">
+      <Card>
         <CardHeader>
           <CardTitle>Game Controls</CardTitle>
         </CardHeader>
