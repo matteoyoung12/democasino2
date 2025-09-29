@@ -95,9 +95,9 @@ export default function CrashGame() {
     setGameState('running');
     
     const animate = (time: number) => {
-      if(gameStateRef.current !== 'running' && gameStateRef.current !== 'betting') {
-        if(animationFrameId.current) cancelAnimationFrame(animationFrameId.current)
-        return;
+      if(gameStateRef.current === 'idle') {
+          if(animationFrameId.current) cancelAnimationFrame(animationFrameId.current)
+          return;
       }
 
       const elapsedTime = (time - (gameStartTime.current ?? time));
@@ -112,29 +112,30 @@ export default function CrashGame() {
         currentMultiplier = fullCurveData.current[currentIndex]?.value ?? 1.0;
       }
       
-      setMultiplier(currentMultiplier);
+      if(gameStateRef.current === 'running') {
+        setMultiplier(currentMultiplier);
+      }
+      
       const dataIndex = Math.min(Math.floor((elapsedTime / finalTime) * fullCurveData.current.length), fullCurveData.current.length-1)
       setChartData(fullCurveData.current.slice(0, dataIndex + 1));
-
-      if (autoCashout > 1 && currentMultiplier >= autoCashout && gameStateRef.current === 'running') {
+      
+      if (gameStateRef.current === 'running' && autoCashout > 1 && currentMultiplier >= autoCashout) {
         handleCashout(autoCashout);
-        if(animationFrameId.current) cancelAnimationFrame(animationFrameId.current)
       }
       
       if (currentMultiplier < crashPoint.current) {
         animationFrameId.current = requestAnimationFrame(animate);
       } else {
-        setMultiplier(crashPoint.current);
-        setChartData(fullCurveData.current);
-        if (gameStateRef.current !== 'cashed_out') {
+        if(gameStateRef.current === 'running') {
+            setMultiplier(crashPoint.current);
             setGameState('crashed');
             toast({
-            title: 'CRASHED!',
-            description: `The rocket crashed at ${crashPoint.current.toFixed(2)}x.`,
-            variant: 'destructive',
+              title: 'CRASHED!',
+              description: `The rocket crashed at ${crashPoint.current.toFixed(2)}x.`,
+              variant: 'destructive',
             });
-        } else {
-            setGameState('crashed');
+        } else if (gameStateRef.current === 'cashed_out') {
+            setGameState('crashed'); // Transition to final state
         }
       }
     };
@@ -190,6 +191,7 @@ export default function CrashGame() {
       case 'betting':
         return <Button disabled size="lg" className="h-16 w-full text-xl">Starting...</Button>;
       case 'cashed_out':
+        return <Button disabled size="lg" className="h-16 w-full text-xl bg-green-500">Cashed Out!</Button>;
       case 'crashed':
          return <Button onClick={handleBet} size="lg" className="h-16 w-full bg-primary text-xl text-primary-foreground hover:bg-primary/90"><Play className="mr-2" />Play Again</Button>;
       default:
@@ -198,7 +200,7 @@ export default function CrashGame() {
   };
 
   const getMultiplierColor = () => {
-    if (gameState === 'crashed' && gameStateRef.current !== 'cashed_out') return 'text-destructive';
+    if (gameState === 'crashed' && winnings === 0) return 'text-destructive';
     if (gameState === 'cashed_out' || (gameState === 'crashed' && winnings > 0)) return 'text-green-500';
     if (gameState === 'crashed') return 'text-destructive';
     return 'text-primary';
@@ -213,7 +215,7 @@ export default function CrashGame() {
               {multiplier.toFixed(2)}x
             </p>
             {gameState === 'crashed' && winnings === 0 && <p className="text-2xl font-semibold text-destructive">CRASHED</p>}
-            {gameState === 'cashed_out' && <p className="text-2xl font-semibold text-green-500">YOU WON {winnings.toFixed(2)}</p>}
+            {(gameState === 'cashed_out' || (gameState === 'crashed' && winnings > 0)) && <p className="text-2xl font-semibold text-green-500">YOU WON {winnings.toFixed(2)}</p>}
           </div>
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={chartData}>
@@ -239,14 +241,16 @@ export default function CrashGame() {
           {renderButton()}
           <div className="grid gap-2">
             <Label htmlFor="bet-amount" className="flex items-center gap-2"><Wallet />Bet Amount</Label>
-            <Input id="bet-amount" type="number" value={betAmount} onChange={(e) => setBetAmount(parseFloat(e.target.value))} disabled={gameState === 'running' || gameState === 'betting'} />
+            <Input id="bet-amount" type="number" value={betAmount} onChange={(e) => setBetAmount(parseFloat(e.target.value))} disabled={gameState === 'running' || gameState === 'betting' || gameState === 'cashed_out'} />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="auto-cashout" className="flex items-center gap-2"><Target />Auto Cash Out</Label>
-            <Input id="auto-cashout" type="number" value={autoCashout} onChange={(e) => setAutoCashout(parseFloat(e.target.value) || 0)} placeholder="2.0" disabled={gameState === 'running' || gameState === 'betting'} />
+            <Input id="auto-cashout" type="number" value={autoCashout} onChange={(e) => setAutoCashout(parseFloat(e.target.value) || 0)} placeholder="2.0" disabled={gameState === 'running' || gameState === 'betting' || gameState === 'cashed_out'} />
           </div>
         </CardContent>
       </Card>
     </div>
   );
 }
+
+    
