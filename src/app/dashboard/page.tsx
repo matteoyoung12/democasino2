@@ -40,6 +40,13 @@ const games = [
     href: '/dashboard/mines',
     imageId: 'mines-card',
   },
+  {
+    id: 'coin-flip',
+    title: 'Coin Flip',
+    description: 'Heads or tails? A simple game of chance with a 50/50 outcome. Bet on the flip!',
+    href: '/dashboard/coin-flip',
+    imageId: 'coin-flip-card',
+  }
 ];
 
 export default function DashboardPage() {
