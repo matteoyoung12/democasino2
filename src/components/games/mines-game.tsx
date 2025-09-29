@@ -158,7 +158,7 @@ export default function MinesGame() {
 
   return (
     <div className="flex flex-col lg:flex-row gap-6 w-full">
-        <div className="grid grid-cols-5 gap-2 md:gap-4 p-4 bg-card rounded-lg flex-grow">
+        <div className="grid grid-cols-5 gap-2 p-4 bg-card rounded-lg flex-grow">
             {gameState === 'betting' && !grid.some(t => t.isRevealed)
              ? Array(GRID_SIZE).fill(0).map((_, i) => <div key={i} className="aspect-square rounded-lg bg-primary/10" />)
              : renderGrid()

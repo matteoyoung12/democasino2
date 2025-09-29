@@ -48,17 +48,26 @@ const getHandScore = (hand: HandType): number => {
     return score;
 }
 
-const CardComponent = ({ card, hidden, isPlayer, cardIndex }: { card?: CardType, hidden?: boolean, isPlayer?: boolean, cardIndex: number }) => {
+const CardComponent = ({ card, hidden, cardIndex, handSize }: { card?: CardType, hidden?: boolean, cardIndex: number, handSize: number }) => {
     const animationDelay = `${cardIndex * 100}ms`;
-    const transformStyle = isPlayer 
-        ? `translateX(-${cardIndex * 30}px)` 
-        : `translateX(-${cardIndex * 30}px)`;
+    
+    // Calculate the offset to center the hand
+    const handWidth = handSize * 40 + (handSize > 0 ? (handSize - 1) * 16 : 0);
+    const totalOffset = -handWidth / 2;
+    const cardOffset = cardIndex * (40 + 16); // 40 is width of the card, 16 is gap
+    
+    const transformStyle = `translateX(calc(-50% + ${totalOffset + cardOffset}px))`;
 
     if (hidden) {
         return (
              <div 
                 className="w-24 h-36 bg-blue-700 rounded-lg border-2 border-blue-900 absolute"
-                style={{ animation: `dealCard 0.5s ease-out forwards`, animationDelay, left: '50%', transform: 'translateX(-50%)' }}
+                style={{ 
+                    animation: `dealCard 0.5s ease-out forwards`, 
+                    animationDelay, 
+                    left: '50%',
+                    transform: transformStyle
+                }}
             ></div>
         );
     }
@@ -71,13 +80,15 @@ const CardComponent = ({ card, hidden, isPlayer, cardIndex }: { card?: CardType,
 
     return (
         <div 
-            className="w-24 h-36 bg-white rounded-lg p-2 flex flex-col justify-between border-2 border-gray-300 shadow-lg absolute"
+            className={cn(
+                "w-24 h-36 bg-white rounded-lg p-2 flex flex-col justify-between border-2 border-gray-300 shadow-lg absolute",
+                "transition-all duration-500 ease-out"
+            )}
             style={{ 
                 animation: `dealCard 0.5s ease-out forwards`,
                 animationDelay,
                 left: '50%', 
-                transform: `translateX(-50%)`,
-                transition: 'transform 0.3s'
+                transform: transformStyle,
             }}
         >
             <div className={`text-xl font-bold ${suitColor}`}>{card.rank}</div>
@@ -120,7 +131,6 @@ export default function BlackjackGame() {
         setMessage('');
 
         if (getHandScore(playerInitialHand) === 21) {
-            // Player has Blackjack
             setTimeout(() => endGame(playerInitialHand, dealerInitialHand, newDeck), 500);
         }
     }
@@ -218,8 +228,8 @@ export default function BlackjackGame() {
                                 key={index} 
                                 card={card} 
                                 hidden={isHidden} 
-                                isPlayer={!isDealer} 
                                 cardIndex={index} 
+                                handSize={hand.length}
                            />
                 })}
             </div>
@@ -231,7 +241,7 @@ export default function BlackjackGame() {
              <style jsx>{`
                 @keyframes dealCard {
                     from { transform: translateY(-200px) translateX(-50%) rotate(0deg); opacity: 0; }
-                    to { transform: translateY(0) translateX(calc(-50% + ${Math.random() * 20 - 10}px)) rotate(${Math.random() * 10 - 5}deg); opacity: 1; }
+                    to { opacity: 1; }
                 }
             `}</style>
             <Card className="w-full bg-green-700/70 border-green-900/50 shadow-2xl">
