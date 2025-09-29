@@ -263,5 +263,3 @@ export default function CrashGame() {
     </div>
   );
 }
-
-    
