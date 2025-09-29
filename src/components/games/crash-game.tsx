@@ -88,9 +88,6 @@ export default function CrashGame() {
         title: cashoutMultiplier === autoCashout ? 'Auto Cashed Out!' : 'Cashed Out!',
         description: `You won ${wonAmount.toFixed(2)} credits at ${cashoutMultiplier.toFixed(2)}x!`,
       });
-      if (animationFrameId.current) {
-        cancelAnimationFrame(animationFrameId.current);
-      }
   }, [betAmount, autoCashout, setBalance, toast]);
 
   const runGame = useCallback(() => {
@@ -116,7 +113,6 @@ export default function CrashGame() {
 
       if (autoCashout > 1 && currentMultiplier >= autoCashout && gameStateRef.current === 'running') {
         handleCashout(autoCashout);
-        return;
       }
       
       if (currentMultiplier < crashPoint.current) {
@@ -124,12 +120,16 @@ export default function CrashGame() {
       } else {
         setMultiplier(crashPoint.current);
         setChartData(fullCurveData.current);
-        setGameState('crashed');
-        toast({
-          title: 'CRASHED!',
-          description: `The rocket crashed at ${crashPoint.current.toFixed(2)}x.`,
-          variant: 'destructive',
-        });
+        if (gameStateRef.current !== 'cashed_out') {
+            setGameState('crashed');
+            toast({
+            title: 'CRASHED!',
+            description: `The rocket crashed at ${crashPoint.current.toFixed(2)}x.`,
+            variant: 'destructive',
+            });
+        } else {
+            setGameState('crashed');
+        }
       }
     };
     animationFrameId.current = requestAnimationFrame(animate);
@@ -189,8 +189,9 @@ export default function CrashGame() {
   };
 
   const getMultiplierColor = () => {
+    if (gameState === 'crashed' && gameStateRef.current !== 'cashed_out') return 'text-destructive';
+    if (gameState === 'cashed_out' || (gameState === 'crashed' && winnings > 0)) return 'text-green-500';
     if (gameState === 'crashed') return 'text-destructive';
-    if (gameState === 'cashed_out') return 'text-green-500';
     return 'text-primary';
   };
 
@@ -202,7 +203,7 @@ export default function CrashGame() {
             <p className={`font-headline font-bold transition-colors duration-300 ${getMultiplierColor()}`} style={{ fontSize: 'clamp(3rem, 10vw, 6rem)' }}>
               {multiplier.toFixed(2)}x
             </p>
-            {gameState === 'crashed' && <p className="text-2xl font-semibold text-destructive">CRASHED</p>}
+            {gameState === 'crashed' && winnings === 0 && <p className="text-2xl font-semibold text-destructive">CRASHED</p>}
             {gameState === 'cashed_out' && <p className="text-2xl font-semibold text-green-500">YOU WON {winnings.toFixed(2)}</p>}
           </div>
           <ResponsiveContainer width="100%" height="100%">
