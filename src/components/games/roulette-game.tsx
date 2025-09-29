@@ -92,49 +92,51 @@ export default function RouletteGame() {
   }, [bets.length, toast, wheelRotation]);
 
   useEffect(() => {
-    if (winningNumber !== null) {
-      let totalWinnings = 0;
-      
-      bets.forEach(bet => {
-        let isWin = false;
-        let payout = 0;
+    if (winningNumber === null) return;
+    
+    let totalWinnings = 0;
+    let isWin = false;
+    
+    bets.forEach(bet => {
+      let winThisBet = false;
+      let payout = 0;
 
-        switch (bet.type) {
-            case 'number':
-                if (bet.value === winningNumber) { isWin = true; payout = 36; }
-                break;
-            case 'red':
-                if (redNumbers.includes(winningNumber)) { isWin = true; payout = 2; }
-                break;
-            case 'black':
-                if (blackNumbers.includes(winningNumber)) { isWin = true; payout = 2; }
-                break;
-            case 'even':
-                if (winningNumber !== 0 && winningNumber % 2 === 0) { isWin = true; payout = 2; }
-                break;
-            case 'odd':
-                if (winningNumber % 2 !== 0) { isWin = true; payout = 2; }
-                break;
-        }
-
-        if (isWin) {
-            totalWinnings += bet.amount * payout;
-        }
-      });
-
-      if (totalWinnings > 0) {
-        setBalance(prev => prev + totalWinnings);
-        toast({ title: 'You Win!', description: `Won ${totalWinnings.toFixed(2)} credits. The number was ${winningNumber}.` });
-      } else {
-        toast({ title: 'You Lose', description: `The winning number was ${winningNumber}.`, variant: 'destructive' });
+      switch (bet.type) {
+          case 'number':
+              if (bet.value === winningNumber) { winThisBet = true; payout = 36; }
+              break;
+          case 'red':
+              if (redNumbers.includes(winningNumber)) { winThisBet = true; payout = 2; }
+              break;
+          case 'black':
+              if (blackNumbers.includes(winningNumber)) { winThisBet = true; payout = 2; }
+              break;
+          case 'even':
+              if (winningNumber !== 0 && winningNumber % 2 === 0) { winThisBet = true; payout = 2; }
+              break;
+          case 'odd':
+              if (winningNumber % 2 !== 0) { winThisBet = true; payout = 2; }
+              break;
       }
-      
-      setTimeout(() => {
-        setBets([]);
-        setSpinning(false);
-      }, 3000);
+
+      if (winThisBet) {
+          isWin = true;
+          totalWinnings += bet.amount * payout;
+      }
+    });
+
+    if (totalWinnings > 0) {
+      setBalance(prev => prev + totalWinnings);
+      toast({ title: 'You Win!', description: `Won ${totalWinnings.toFixed(2)} credits. The number was ${winningNumber}.` });
+    } else {
+      toast({ title: 'You Lose', description: `The winning number was ${winningNumber}.`, variant: 'destructive' });
     }
-  }, [winningNumber, bets, toast, setBalance]);
+    
+    setTimeout(() => {
+      setBets([]);
+      setSpinning(false);
+    }, 3000);
+  }, [winningNumber, bets, toast]);
 
 
   return (
