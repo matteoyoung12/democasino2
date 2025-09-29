@@ -92,10 +92,9 @@ export default function RouletteGame() {
   }, [bets.length, toast, wheelRotation]);
 
   useEffect(() => {
-    if (winningNumber === null) return;
+    if (winningNumber === null || spinning === false) return;
     
     let totalWinnings = 0;
-    let isWin = false;
     
     bets.forEach(bet => {
       let winThisBet = false;
@@ -120,7 +119,6 @@ export default function RouletteGame() {
       }
 
       if (winThisBet) {
-          isWin = true;
           totalWinnings += bet.amount * payout;
       }
     });
@@ -136,34 +134,38 @@ export default function RouletteGame() {
       setBets([]);
       setSpinning(false);
     }, 3000);
-  }, [winningNumber, bets, toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [winningNumber, spinning]);
 
 
   return (
     <div className="flex flex-col items-center gap-8 w-full">
-        <div 
-          className="w-80 h-80 bg-gray-800 rounded-full flex items-center justify-center transition-transform duration-5000 ease-out"
-          style={{ transform: `rotate(${wheelRotation}deg)` }}
-        >
-            <div className="relative w-full h-full">
-                {numbers.map((num, i) => (
-                    <div
-                        key={num}
-                        className="absolute w-full h-full"
-                        style={{ transform: `rotate(${(i / numbers.length) * 360}deg)` }}
-                    >
+        <div className="relative">
+            <div 
+            className="w-80 h-80 bg-gray-800 rounded-full flex items-center justify-center transition-transform duration-5000 ease-out border-8 border-gray-700"
+            style={{ transform: `rotate(${wheelRotation}deg)` }}
+            >
+                <div className="relative w-full h-full">
+                    {numbers.map((num, i) => (
                         <div
-                            className={cn(
-                                'absolute top-0 left-1/2 -ml-4 w-8 h-12 text-center text-white flex items-center justify-center font-bold',
-                                getNumberColorClass(num)
-                            )}
+                            key={num}
+                            className="absolute w-full h-full"
+                            style={{ transform: `rotate(${(i / numbers.length) * 360}deg)` }}
                         >
-                            {num}
+                            <div
+                                className={cn(
+                                    'absolute top-0 left-1/2 -ml-4 w-8 h-12 text-center text-white flex items-center justify-center font-bold origin-bottom',
+                                    'transform -translate-y-2'
+                                )}
+                            >
+                                <span className={cn('block transform rotate-[-6deg]', getNumberColorClass(num), 'px-1')}>{num}</span>
+                            </div>
                         </div>
-                    </div>
-                ))}
+                    ))}
+                </div>
+                <div className="absolute w-20 h-20 bg-gray-600 rounded-full border-4 border-gray-400" />
             </div>
-             <div className="absolute w-12 h-12 bg-gray-600 rounded-full border-4 border-gray-400" />
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2 w-0 h-0 border-l-8 border-l-transparent border-r-8 border-r-transparent border-t-8 border-t-primary z-10" />
         </div>
          {winningNumber !== null && !spinning && (
             <div className="text-2xl font-bold p-4">Winning Number: <span className={cn('p-2 rounded', getNumberColorClass(winningNumber))}>{winningNumber}</span></div>
