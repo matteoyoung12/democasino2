@@ -28,6 +28,7 @@ type Player = {
   winnings?: number;
 };
 
+// Simple pseudo-random number generator for deterministic results based on a seed
 const prng = (seed: number) => {
   let t = (seed += 0x6d2b79f5);
   t = Math.imul(t ^ (t >>> 15), t | 1);
@@ -35,22 +36,28 @@ const prng = (seed: number) => {
   return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
 };
 
+// Generates a crash point using the seed. The distribution is skewed towards lower numbers.
 const generateCrashPoint = (seed: number) => {
     const r = prng(seed);
+    // This formula creates a distribution where low multipliers are more common.
     const crash = 1 / (1 - r);
     return Math.max(1.01, parseFloat(crash.toFixed(2)));
 };
 
+// Generates the data for the chart's curve based on the crash point
 const generateCurveData = (crashPoint: number) => {
     const data = [];
-    const duration = Math.log(crashPoint) * 8; // Slower growth
-    const steps = Math.max(120, duration * 60); 
+    // The duration of the game is logarithmically related to the crash point, making high-multiplier games longer.
+    const duration = Math.log(crashPoint) * 5; 
+    const steps = Math.max(120, duration * 60); // At least 120 steps for a smooth curve
 
     for (let i = 0; i <= steps; i++) {
         const t = (i / steps);
-        const multiplier = 1 + (crashPoint - 1) * Math.pow(t, 2.5); // Use a power curve for smoother start
+        // Use a power curve (t^2.5) for a smooth start, making the initial growth slower.
+        const multiplier = 1 + (crashPoint - 1) * Math.pow(t, 2.5);
         data.push({ time: t, value: multiplier });
     }
+    // Ensure the final point is exactly the crash point
     if (data[data.length - 1].value < crashPoint) {
        data.push({ time: 1, value: crashPoint });
     }
@@ -83,25 +90,29 @@ export default function CrashGame() {
   const [betAmount, setBetAmount] = useState(10);
   const [autoCashout, setAutoCashout] = useState(2.0);
   const [autoCashoutEnabled, setAutoCashoutEnabled] = useState(true);
-  const [players, setPlayers] = useState<Player[]>([]);
   const [hasPlacedBet, setHasPlacedBet] = useState(false);
   const [isCashedOut, setIsCashedOut] = useState(false);
   
   const { balance, setBalance } = useBalance();
   const { toast } = useToast();
 
-  const animationFrameRef = useRef<number>();
-  
-  // Refs to hold the latest state for use in the animation loop
+  const gameLogicRef = useRef({
+      animationFrameId: 0,
+      crashPoint: 1,
+      curve: [] as { time: number; value: number }[],
+      startTime: 0,
+      gameDuration: 0,
+  });
+
   const playerStateRef = useRef({
       hasPlacedBet,
       isCashedOut,
       betAmount,
       autoCashoutEnabled,
       autoCashout,
-      balance
   });
-
+  
+  // Keep the ref updated with the latest state
   useEffect(() => {
       playerStateRef.current = {
           hasPlacedBet,
@@ -109,14 +120,13 @@ export default function CrashGame() {
           betAmount,
           autoCashoutEnabled,
           autoCashout,
-          balance
       };
-  }, [hasPlacedBet, isCashedOut, betAmount, autoCashoutEnabled, autoCashout, balance]);
+  }, [hasPlacedBet, isCashedOut, betAmount, autoCashoutEnabled, autoCashout]);
   
   const handleCashout = useCallback((cashoutMultiplier: number, isAuto: boolean) => {
-    if (!playerStateRef.current.hasPlacedBet || playerStateRef.current.isCashedOut) return;
+    if (!playerStateRef.current.hasPlacedBet || isCashedOut) return;
 
-    setIsCashedOut(true);
+    setIsCashedOut(true); // This now correctly updates the state
     const bet = playerStateRef.current.betAmount;
     const wonAmount = bet * cashoutMultiplier;
     setBalance(prev => prev + wonAmount);
@@ -125,7 +135,7 @@ export default function CrashGame() {
         title: isAuto ? t.autoCashedOut : t.cashedOut,
         description: `${t.youWonAmount} ${wonAmount.toFixed(2)} ${t.creditsAt} ${cashoutMultiplier.toFixed(2)}x!`,
     });
-  }, [setBalance, t, toast]);
+  }, [setBalance, t, toast, isCashedOut]); // Add isCashedOut to dependencies
 
 
   const runGame = useCallback(() => {
@@ -133,7 +143,9 @@ export default function CrashGame() {
       const crashPoint = generateCrashPoint(seed);
       const curve = generateCurveData(crashPoint);
       const startTime = Date.now();
-      const gameDuration = Math.log(crashPoint) * 8 * 1000;
+      const gameDuration = Math.log(crashPoint) * 5 * 1000;
+
+      gameLogicRef.current = { ...gameLogicRef.current, crashPoint, curve, startTime, gameDuration };
 
       const animate = () => {
           const elapsedTime = Date.now() - startTime;
@@ -144,11 +156,11 @@ export default function CrashGame() {
               currentMultiplier = crashPoint;
           } else {
               const curveIndex = Math.floor(progress * (curve.length - 1));
-              currentMultiplier = curve[curveIndex].value;
+              currentMultiplier = curve[curveIndex]?.value || 1;
           }
 
           setMultiplier(currentMultiplier);
-          const dataIndex = Math.min(Math.floor(progress * curve.length), curve.length-1)
+          const dataIndex = Math.min(Math.floor(progress * curve.length), curve.length-1);
           setChartData(curve.slice(0, dataIndex + 1));
           
           if (playerStateRef.current.hasPlacedBet && !playerStateRef.current.isCashedOut && playerStateRef.current.autoCashoutEnabled && currentMultiplier >= playerStateRef.current.autoCashout) {
@@ -156,26 +168,16 @@ export default function CrashGame() {
           }
           
           if (progress < 1) {
-            animationFrameRef.current = requestAnimationFrame(animate);
+            gameLogicRef.current.animationFrameId = requestAnimationFrame(animate);
           } else {
             setMultiplier(crashPoint);
-
-            if(playerStateRef.current.hasPlacedBet && !playerStateRef.current.isCashedOut) {
-                toast({
-                  title: t.crashedTitle,
-                  description: `${t.rocketCrashedAt} ${crashPoint.toFixed(2)}x.`,
-                  variant: 'destructive',
-                });
-            }
-            setHistory(prev => [crashPoint, ...prev].slice(0, 20));
             setPhase('CRASHED');
           }
       };
       
-      animationFrameRef.current = requestAnimationFrame(animate);
-  }, [handleCashout, toast, t]);
-
-
+      gameLogicRef.current.animationFrameId = requestAnimationFrame(animate);
+  }, [handleCashout]);
+  
   useEffect(() => {
     let interval: NodeJS.Timeout | undefined;
 
@@ -196,9 +198,20 @@ export default function CrashGame() {
           setPhase('RUNNING');
         }
       }, 1000);
+
     } else if (phase === 'RUNNING') {
       runGame();
     } else if (phase === 'CRASHED') {
+      const crashPoint = gameLogicRef.current.crashPoint;
+      if (playerStateRef.current.hasPlacedBet && !playerStateRef.current.isCashedOut) {
+        toast({
+          title: t.crashedTitle,
+          description: `${t.rocketCrashedAt} ${crashPoint.toFixed(2)}x.`,
+          variant: 'destructive',
+        });
+      }
+      setHistory(prev => [crashPoint, ...prev].slice(0, 20));
+
       interval = setTimeout(() => {
         setPhase('BETTING');
       }, 3000);
@@ -206,9 +219,9 @@ export default function CrashGame() {
 
     return () => {
       if (interval) clearInterval(interval);
-      if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+      if (gameLogicRef.current.animationFrameId) cancelAnimationFrame(gameLogicRef.current.animationFrameId);
     };
-  }, [phase, runGame]);
+  }, [phase, runGame, t, toast]);
 
 
   const placeBet = () => {
@@ -273,7 +286,7 @@ export default function CrashGame() {
                 <div className="space-y-2 max-h-[60vh] overflow-y-auto">
                     {players.map(p => (
                          <div key={p.id} className="flex items-center justify-between bg-secondary p-2 rounded-lg text-sm">
-                             <div className="flex items-center gap-2">
+                             <div className="flex items-center gap-2 overflow-hidden">
                                 <Avatar className="h-8 w-8">
                                     <AvatarImage src={p.avatar} />
                                     <AvatarFallback>{p.name.charAt(0)}</AvatarFallback>
@@ -366,3 +379,4 @@ export default function CrashGame() {
   );
 }
 
+    
