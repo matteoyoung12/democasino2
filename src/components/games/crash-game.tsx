@@ -92,7 +92,6 @@ export default function CrashGame() {
   const animationFrameRef = useRef<number>();
   const timeoutRef = useRef<NodeJS.Timeout>();
   
-  // Refs for state that needs to be accessed inside callbacks without causing re-renders
   const cashedOutRef = useRef(false);
   const hasPlacedBetRef = useRef(hasPlacedBet);
   const currentBetAmountRef = useRef(betAmount);
@@ -175,8 +174,9 @@ export default function CrashGame() {
 
 
   useEffect(() => {
+      let countdownInterval: NodeJS.Timeout | undefined;
+
       if (phase === 'BETTING') {
-          // Reset for new round
           cashedOutRef.current = false;
           setHasPlacedBet(false);
           setMultiplier(1.00);
@@ -185,19 +185,19 @@ export default function CrashGame() {
 
           let count = 10;
           setCountdown(count);
-          const countdownInterval = setInterval(() => {
-              count--;
-              setCountdown(c => c-1);
-              if (count <= 0) {
-                  clearInterval(countdownInterval);
-                  setPhase('RUNNING');
-              }
+          countdownInterval = setInterval(() => {
+              setCountdown(c => {
+                  if (c - 1 <= 0) {
+                      clearInterval(countdownInterval);
+                      setPhase('RUNNING');
+                      return 0;
+                  }
+                  return c - 1;
+              });
           }, 1000);
-          return () => clearInterval(countdownInterval);
       } else if (phase === 'RUNNING') {
           runGame();
       } else if (phase === 'CRASHED') {
-          // After crash, wait 3 seconds then go back to betting phase
           timeoutRef.current = setTimeout(() => {
               setPhase('BETTING');
           }, 3000);
@@ -206,6 +206,7 @@ export default function CrashGame() {
       return () => {
         if(animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
         if(timeoutRef.current) clearTimeout(timeoutRef.current);
+        if(countdownInterval) clearInterval(countdownInterval);
       }
   }, [phase, runGame]);
 
@@ -350,10 +351,10 @@ export default function CrashGame() {
         {/* History */}
         <Card className="lg:col-span-2 bg-card/80">
             <CardContent className="p-4">
-                 <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><History/> История раундов</h3>
+                 <h3 className="font-bold text-xl mb-4 flex items-center gap-2"><History/> История раундов</h3>
                  <div className="grid grid-cols-3 gap-2 text-center">
                     {history.map((h, i) => (
-                         <div key={i} className={cn("p-2 rounded-lg font-bold", h >= 10 ? 'text-purple-400' : h >= 2 ? 'text-green-400' : 'text-red-400', 'bg-secondary')}>
+                         <div key={i} className={cn("p-3 rounded-lg font-bold text-lg", h >= 10 ? 'text-purple-400' : h >= 2 ? 'text-green-400' : 'text-red-400', 'bg-secondary')}>
                             {h.toFixed(2)}x
                          </div>
                     ))}
