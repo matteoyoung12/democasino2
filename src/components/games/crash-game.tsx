@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -272,11 +271,11 @@ export default function CrashGame() {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full">
+    <div className="grid grid-cols-1 lg:grid-cols-10 gap-6 h-full">
         {/* Players List */}
-        <Card className="lg:col-span-3 bg-card/80">
+        <Card className="lg:col-span-2 bg-card/80">
             <CardContent className="p-4">
-                <h3 className="font-bold text-lg mb-2 flex items-center gap-2"><Users/> Текущие игроки ({players.length})</h3>
+                <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><Users/> Текущие игроки ({players.length})</h3>
                 <div className="space-y-2 max-h-[60vh] overflow-y-auto">
                     {players.map(p => (
                          <div key={p.id} className="flex items-center justify-between bg-secondary p-2 rounded-lg text-sm">
@@ -299,19 +298,19 @@ export default function CrashGame() {
         </Card>
 
         {/* Main Game Area */}
-        <div className="lg:col-span-7 flex flex-col gap-4">
+        <div className="lg:col-span-6 flex flex-col gap-6">
             <Card className="flex-grow bg-card/80 backdrop-blur-sm">
                 <CardContent className="relative aspect-video p-0 h-full">
                 <div className="absolute inset-0 top-1/2 left-1/2 z-10 -translate-x-1/2 -translate-y-1/2 text-center">
                     {phase === 'BETTING' ? (
                         <>
                             <p className="text-2xl font-semibold text-muted-foreground">Раунд начнется через</p>
-                            <p className="font-headline font-bold text-5xl text-foreground">
+                            <p className="font-headline font-bold text-7xl text-foreground drop-shadow-lg">
                                 {countdown.toFixed(1)}
                             </p>
                         </>
                     ) : (
-                         <p className={`font-headline font-bold transition-colors duration-300 ${getMultiplierColor()}`} style={{ fontSize: 'clamp(3rem, 10vw, 6rem)' }}>
+                         <p className={`font-headline font-bold transition-colors duration-300 drop-shadow-lg ${getMultiplierColor()}`} style={{ fontSize: 'clamp(4rem, 12vw, 8rem)' }}>
                             {multiplier.toFixed(2)}x
                          </p>
                     )}
@@ -331,16 +330,16 @@ export default function CrashGame() {
             </Card>
 
             <Card className="bg-card/80">
-                <CardContent className="p-4 flex flex-col gap-4">
-                    <div className="grid grid-cols-2 gap-4">
+                <CardContent className="p-6 flex flex-col gap-4">
+                    <div className="grid grid-cols-2 gap-6">
                          <div className="grid gap-2">
                             <Label htmlFor="bet-amount" className="flex items-center gap-2"><Wallet />{t.betAmount}</Label>
-                            <Input id="bet-amount" type="number" value={betAmount} onChange={(e) => setBetAmount(parseFloat(e.target.value))} disabled={hasPlacedBet} />
+                            <Input id="bet-amount" type="number" value={betAmount} onChange={(e) => setBetAmount(parseFloat(e.target.value))} disabled={hasPlacedBet} className="h-12 text-lg"/>
                         </div>
                          <div className="grid gap-2">
                             <Label htmlFor="auto-cashout" className="flex items-center gap-2"><Target />{t.autoCashOut}</Label>
                             <div className='flex items-center gap-2'>
-                                <Input id="auto-cashout" type="number" value={autoCashout} onChange={(e) => setAutoCashout(parseFloat(e.target.value) || 0)} placeholder="2.0" disabled={hasPlacedBet} />
+                                <Input id="auto-cashout" type="number" value={autoCashout} onChange={(e) => setAutoCashout(parseFloat(e.target.value) || 0)} placeholder="2.0" disabled={hasPlacedBet} className="h-12 text-lg" />
                                 <Switch checked={autoCashoutEnabled} onCheckedChange={setAutoCashoutEnabled} disabled={hasPlacedBet} />
                             </div>
                         </div>
@@ -359,7 +358,7 @@ export default function CrashGame() {
         {/* History */}
         <Card className="lg:col-span-2 bg-card/80">
             <CardContent className="p-4">
-                 <h3 className="font-bold text-lg mb-2 flex items-center gap-2"><History/> История раундов</h3>
+                 <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><History/> История раундов</h3>
                  <div className="grid grid-cols-3 gap-2 text-center">
                     {history.map((h, i) => (
                          <div key={i} className={cn("p-2 rounded-lg font-bold", h >= 10 ? 'text-purple-400' : h >= 2 ? 'text-green-400' : 'text-red-400', 'bg-secondary')}>
@@ -373,5 +372,3 @@ export default function CrashGame() {
     </div>
   );
 }
-
-    
