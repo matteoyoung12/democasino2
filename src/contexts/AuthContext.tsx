@@ -63,6 +63,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         await updateProfile(userCredential.user, {
             displayName: nickname
         });
+        // Manually update the user state after profile update
+        setUser(auth.currentUser);
       }
     } catch (error: any) {
       switch (error.code) {
