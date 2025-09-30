@@ -257,7 +257,7 @@ export default function MinesGame() {
 
             <Dialog>
                 <DialogTrigger asChild>
-                    <Button variant="outline"><HelpCircle className="mr-2"/>Как играть?</Button>
+                    <Button variant="outline" className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30 hover:bg-yellow-500/30 hover:text-yellow-400"><HelpCircle className="mr-2"/>Как играть?</Button>
                 </DialogTrigger>
                 <DialogContent>
                     <DialogHeader>

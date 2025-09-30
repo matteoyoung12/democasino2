@@ -118,9 +118,8 @@ export default function CrashGame() {
         currentMultiplier = fullCurveData.current[currentIndex]?.value ?? 1.0;
       }
       
-      if(gameStateRef.current === 'running') {
-        setMultiplier(currentMultiplier);
-      }
+      // Always update multiplier visually, even after cashing out
+      setMultiplier(currentMultiplier);
       
       const dataIndex = Math.min(Math.floor((elapsedTime / finalTime) * fullCurveData.current.length), fullCurveData.current.length-1)
       setChartData(fullCurveData.current.slice(0, dataIndex + 1));
@@ -132,17 +131,16 @@ export default function CrashGame() {
       if (currentMultiplier < crashPoint.current) {
         animationFrameId.current = requestAnimationFrame(animate);
       } else {
+        // Rocket has crashed
+        setMultiplier(crashPoint.current);
+        setGameState('crashed');
+
         if(gameStateRef.current === 'running') {
-            setMultiplier(crashPoint.current);
-            setGameState('crashed');
             toast({
               title: t.crashedTitle,
               description: `${t.rocketCrashedAt} ${crashPoint.current.toFixed(2)}x.`,
               variant: 'destructive',
             });
-        } else if (gameStateRef.current === 'cashed_out') {
-            setMultiplier(crashPoint.current); // Update to final crash point
-            setGameState('crashed'); // Transition to final state
         }
       }
     };
@@ -198,7 +196,7 @@ export default function CrashGame() {
       case 'betting':
         return <Button disabled size="lg" className="h-16 w-full text-xl">{t.starting}</Button>;
       case 'cashed_out':
-        return <Button disabled size="lg" className="h-16 w-full text-xl bg-green-500">{t.cashedOut}</Button>;
+         return <Button onClick={handleBet} size="lg" className="h-14 w-full text-xl"><Play className="mr-2" />{t.playAgain}</Button>;
       case 'crashed':
          return <Button onClick={handleBet} size="lg" className="h-14 w-full text-xl"><Play className="mr-2" />{t.playAgain}</Button>;
       default:
