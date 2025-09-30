@@ -17,7 +17,8 @@ import {
   Bomb,
   Gem,
   Spade,
-  Disc
+  Disc,
+  Trophy
 } from "lucide-react";
 import Logo from "@/components/logo";
 import {
@@ -48,6 +49,10 @@ const RouletteIcon = (props: React.SVGProps<SVGSVGElement>) => (
 );
 
 
+const topItems = [
+  { href: "/dashboard", labelKey: "lobby", icon: Swords },
+];
+
 const gameItems = [
   { href: "/dashboard/plinko", labelKey: "plinko", icon: Disc },
   { href: "/dashboard/roulette", labelKey: "roulette", icon: RouletteIcon },
@@ -57,9 +62,14 @@ const gameItems = [
   { href: "/dashboard/blackjack", labelKey: "blackjack", icon: Spade },
 ];
 
+const mainNavItems = [
+    { href: "/dashboard/tournaments", labelKey: "tournaments", icon: Trophy },
+    { href: "/dashboard/ranks", labelKey: "ranks", icon: Star },
+    { href: "/dashboard/bonuses", labelKey: "bonuses", icon: Gift },
+];
 
 const bottomItems = [
-    { href: "#", labelKey: "support", icon: HelpCircle },
+    { href: "/dashboard/support", labelKey: "support", icon: HelpCircle },
     { href: "#", labelKey: "notifications", icon: Bell, notification: true },
 ]
 
@@ -69,6 +79,8 @@ export default function Sidebar() {
     const { language } = useLanguage();
     const t = translations[language];
 
+    const allNavItems = [...topItems, ...gameItems, ...mainNavItems];
+
     return (
         <aside className="w-20 bg-card flex flex-col items-center py-4 px-2">
              <Link href="/dashboard" className="mb-8">
@@ -76,10 +88,10 @@ export default function Sidebar() {
                </Link>
             <TooltipProvider>
                 <nav className="flex flex-col items-center gap-3">
-                    {gameItems.map((item) => (
+                    {allNavItems.map((item) => (
                          <Tooltip key={item.href}>
                             <TooltipTrigger asChild>
-                                <Button asChild variant={pathname === item.href ? 'secondary' : 'ghost'} className="h-12 w-12 rounded-lg">
+                                <Button asChild variant={pathname === item.href ? 'secondary' : 'ghost'} className={cn("h-12 w-12 rounded-lg", pathname === item.href && "bg-primary/20")}>
                                         <Link href={item.href}>
                                         <item.icon className="h-6 w-6 text-primary" />
                                     </Link>

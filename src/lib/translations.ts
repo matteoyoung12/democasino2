@@ -30,6 +30,7 @@ export const translations = {
     bonuses: 'Bonuses',
     support: 'Support',
     notifications: 'Notifications',
+    profile: 'Profile',
 
     // Game types
     lobby: 'Lobby',
@@ -184,6 +185,7 @@ buyBonus: "Buy Bonus",
     bonuses: 'Бонусы',
     support: 'Поддержка',
     notifications: 'Уведомления',
+    profile: 'Профиль',
 
     // Game types
     lobby: 'Лобби',

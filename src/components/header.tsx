@@ -13,7 +13,8 @@ import {
   PlusCircle,
   MinusCircle,
   User,
-  Volume2
+  Volume2,
+  Trophy
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,12 +30,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 
 const topNavItems = [
-    { href: "#", labelKey: "games" },
-    { href: "#", labelKey: "tournaments" },
-    { href: "#", labelKey: "ranks" },
-    { href: "#", labelKey: "reviews" },
-    { href: "#", labelKey: "help" },
-    { href: "#", labelKey: "bonuses", highlighted: true },
+    { href: "/dashboard/tournaments", labelKey: "tournaments", icon: Trophy },
+    { href: "/dashboard/ranks", labelKey: "ranks", icon: Star },
+    { href: "/dashboard/reviews", labelKey: "reviews", icon: MessageSquare },
+    { href: "/dashboard/help", labelKey: "help", icon: HelpCircle },
+    { href: "/dashboard/bonuses", labelKey: "bonuses", icon: Gift, highlighted: true },
 ]
 
 
@@ -52,6 +52,7 @@ export default function Header() {
                 {topNavItems.map(item => (
                     <Button key={item.labelKey} variant={item.highlighted ? "secondary" : "link"} asChild className={item.highlighted ? "bg-accent/20 text-accent" : "text-foreground"}>
                         <Link href={item.href}>
+                             <item.icon className="mr-2 h-4 w-4" />
                              {t[item.labelKey as keyof typeof t]}
                         </Link>
                     </Button>
@@ -89,10 +90,12 @@ export default function Header() {
                     <MinusCircle className="mr-2" /> {t.withdraw}
                 </Button>
 
-                 <Avatar>
-                    <AvatarImage src={"https://picsum.photos/seed/user/100/100"} />
-                    <AvatarFallback><User /></AvatarFallback>
-                </Avatar>
+                 <Link href="/dashboard/profile">
+                    <Avatar>
+                        <AvatarImage src={"https://picsum.photos/seed/user/100/100"} />
+                        <AvatarFallback><User /></AvatarFallback>
+                    </Avatar>
+                 </Link>
             </div>
         </header>
     );
