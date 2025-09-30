@@ -7,20 +7,45 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Wallet, Play } from 'lucide-react';
+import { Play } from 'lucide-react';
 import { useBalance } from '@/contexts/BalanceContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { translations } from '@/lib/translations';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { cn } from '@/lib/utils';
+import { Slider } from '@/components/ui/slider';
 
 
 const MULTIPLIERS = {
-    low: [1.6, 1.3, 1.1, 1, 0.8, 1, 1.1, 1.3, 1.6],
-    medium: [5, 2, 1.2, 1, 0.7, 1, 1.2, 2, 5],
-    high: [10, 3, 1.5, 1, 0.5, 1, 1.5, 3, 10],
+    low: [5.3, 2.2, 1.1, 0.9, 0.5, 0.9, 1.1, 2.2, 5.3],
+    medium: [10, 3, 1.5, 1, 0.5, 1, 1.5, 3, 10],
+    high: [25, 5, 2, 1.2, 0.4, 1.2, 2, 5, 25],
 };
-const BUCKET_COUNT = 9;
+
+const getMultiplierConfig = (rows: number) => {
+    const baseMultipliers = {
+        low: [16, 9, 2, 1.4, 1.1, 1, 0.5, 1, 1.1, 1.4, 2, 9, 16],
+        medium: [110, 24, 10, 5, 3, 1.5, 0.5, 1.5, 3, 5, 10, 24, 110],
+        high: [1000, 130, 26, 9, 4, 2, 0.5, 2, 4, 9, 26, 130, 1000]
+    };
+
+    const count = rows + 1;
+    const midIndex = Math.floor(baseMultipliers.low.length / 2);
+    const halfCount = Math.floor(count / 2);
+
+    const sliceAndMirror = (arr: number[]) => {
+        const half = arr.slice(midIndex - halfCount, midIndex);
+        const result = [...half, arr[midIndex], ...half.slice().reverse()];
+        return result.slice(0, count);
+    };
+
+    return {
+        low: sliceAndMirror(baseMultipliers.low),
+        medium: sliceAndMirror(baseMultipliers.medium),
+        high: sliceAndMirror(baseMultipliers.high),
+    };
+}
 
 
 const PlinkoGame = () => {
@@ -28,77 +53,75 @@ const PlinkoGame = () => {
   const t = translations[language];
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [betAmount, setBetAmount] = useState(10);
-  const [rows, setRows] = useState(12);
-  const [risk, setRisk] = useState<'low' | 'medium' | 'high'>('medium');
+  const [betAmount, setBetAmount] = useState(1.00);
+  const [rows, setRows] = useState(8);
+  const [risk, setRisk] = useState<'low' | 'medium' | 'high'>('low');
   const [isDropping, setIsDropping] = useState(false);
   
   const { balance, setBalance } = useBalance();
   const { toast } = useToast();
+  
+  const currentMultipliers = getMultiplierConfig(rows);
 
   const getBucketColor = (multiplier: number) => {
-    if (multiplier > 2) return 'hsl(var(--destructive) / 0.7)';
-    if (multiplier > 1.2) return 'hsl(var(--accent) / 0.7)';
-    if (multiplier >= 1) return 'hsl(var(--primary) / 0.5)';
-    return 'hsl(var(--muted-foreground) / 0.5)';
+    if (multiplier >= 10) return 'hsl(var(--destructive))';
+    if (multiplier >= 3) return 'hsl(34, 97%, 62%)'; // Orange
+    if (multiplier >= 1.5) return 'hsl(var(--accent))';
+    if (multiplier >= 1) return 'hsl(142, 71%, 45%)'; // Green
+    return 'hsl(210, 40%, 96.1%)'; // text-foreground
   }
 
   const drawPlinko = useCallback((ctx: CanvasRenderingContext2D, width: number, height: number) => {
     ctx.clearRect(0, 0, width, height);
     
-    const pegRadius = 5;
-    const verticalSpacing = height / (rows + 4);
+    const pegRadius = width / 100;
+    const topPadding = height * 0.1;
+    const rowSpacing = (height - topPadding - (height * 0.15)) / (rows - 1);
     
     // Draw Pegs (Pyramid shape)
     for (let row = 0; row < rows; row++) {
-      const numPegsInRow = row + 2;
-      const horizontalSpacing = width / (numPegsInRow + 1);
+      const numPegsInRow = row + 1;
+      const pegSpacing = width * 0.8 / row;
       for (let col = 0; col < numPegsInRow; col++) {
-        const x = horizontalSpacing * (col + 1);
-        const y = verticalSpacing * (row + 1.5);
+        const x = (width * 0.1) + (row > 0 ? col * pegSpacing : 0) + (width * 0.8 - (numPegsInRow - 1) * pegSpacing) / 2;
+        const y = topPadding + row * rowSpacing;
         ctx.beginPath();
         ctx.arc(x, y, pegRadius, 0, Math.PI * 2);
-        ctx.fillStyle = 'hsl(var(--muted-foreground))';
+        ctx.fillStyle = 'hsl(227, 24%, 30%)'; // A bit lighter than background
+        ctx.shadowColor = 'hsl(var(--primary))';
+        ctx.shadowBlur = 5;
         ctx.fill();
+        ctx.shadowBlur = 0;
       }
     }
-    
-    // Draw Multiplier Buckets
-    const multipliers = MULTIPLIERS[risk];
-    const bucketWidth = width / BUCKET_COUNT;
-    for (let i = 0; i < BUCKET_COUNT; i++) {
-        const x = i * bucketWidth;
-        const y = height - verticalSpacing;
-        ctx.fillStyle = getBucketColor(multipliers[i]);
-        ctx.fillRect(x, y, bucketWidth, verticalSpacing);
-        ctx.strokeStyle = 'hsl(var(--border))';
-        ctx.strokeRect(x, y, bucketWidth, verticalSpacing);
-        ctx.fillStyle = 'hsl(var(--card-foreground))';
-        ctx.font = 'bold 14px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(`${multipliers[i]}x`, x + bucketWidth / 2, y + verticalSpacing / 1.5);
-    }
-  }, [rows, risk]);
+  }, [rows]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (canvas) {
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        const { width, height } = canvas.getBoundingClientRect();
-        canvas.width = width;
-        canvas.height = height;
-        drawPlinko(ctx, width, height);
-      }
+      const resizeObserver = new ResizeObserver(() => {
+          const { width, height } = canvas.getBoundingClientRect();
+          if (canvas.width !== width || canvas.height !== height) {
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+                drawPlinko(ctx, width, height);
+            }
+          }
+      });
+      resizeObserver.observe(canvas);
+      return () => resizeObserver.disconnect();
     }
-  }, [rows, risk, drawPlinko]);
-
+  }, [drawPlinko]);
 
   const handleDrop = () => {
     if (betAmount > balance) {
       toast({ title: t.insufficientBalance, variant: "destructive" });
       return;
     }
+    if (isDropping) return;
+
     setIsDropping(true);
     setBalance(prev => prev - betAmount);
 
@@ -109,47 +132,39 @@ const PlinkoGame = () => {
     if (!ctx) return;
 
     const { width, height } = canvas;
-    const verticalSpacing = height / (rows + 4);
-    const ballRadius = 7;
-    let x = width / 2 + (Math.random() - 0.5) * 20;
-    let y = ballRadius + 5;
-    let vx = 0;
-    let vy = 0;
-    const gravity = 0.2;
-    let path = [x]; // Path of horizontal positions
+    const ballRadius = width / 80;
+    const topPadding = height * 0.1;
+    const rowSpacing = (height - topPadding - (height * 0.15)) / (rows - 1);
 
-    // Simulate path
-    for(let row = 0; row < rows; row++) {
-        const direction = Math.random() < 0.5 ? -1 : 1;
-        const numPegsInRow = row + 2;
-        const horizontalSpacing = width / (numPegsInRow + 1);
-        path.push(path[path.length - 1] + (direction * horizontalSpacing / 2));
+    let x = width / 2;
+    let y = ballRadius;
+    let path: number[] = [0];
+
+    for (let row = 0; row < rows; row++) {
+        path.push(Math.random() < 0.5 ? -0.5 : 0.5);
     }
     
     let step = 0;
+    const totalPathTime = 2000;
+    const stepTime = totalPathTime / rows;
+    let startTime = performance.now();
 
-    const animate = () => {
+    const animate = (time: number) => {
       drawPlinko(ctx, width, height); 
       
-      const targetY = verticalSpacing * (step + 1.5);
+      const elapsedTime = time - startTime;
+      const currentStep = Math.min(Math.floor(elapsedTime / stepTime), rows - 1);
+      const stepProgress = (elapsedTime % stepTime) / stepTime;
 
-      if (y < targetY) {
-         vy += gravity;
-         y += vy;
-         
-         // Interpolate horizontal movement
-         if (step < path.length - 1) {
-            const startX = path[step];
-            const endX = path[step+1];
-            const startY = verticalSpacing * (step + 0.5);
-            const progress = (y - startY) / (targetY - startY);
-            x = startX + (endX - startX) * Math.sin(Math.PI * progress / 2); // Ease out
-         }
-      } else {
-        vy = 0;
-        step++;
-      }
-
+      const currentRow = currentStep;
+      const numPegsInRow = currentRow + 1;
+      const pegSpacing = width * 0.8 / currentRow;
+      
+      const startX = width/2 + path.slice(0, currentRow + 1).reduce((a, b) => a + b, 0) * pegSpacing;
+      const endX = width/2 + path.slice(0, currentRow + 2).reduce((a, b) => a + b, 0) * pegSpacing;
+      
+      x = startX + (endX - startX) * stepProgress;
+      y = topPadding + currentRow * rowSpacing + stepProgress * rowSpacing;
 
       ctx.beginPath();
       ctx.arc(x, y, ballRadius, 0, Math.PI * 2);
@@ -158,18 +173,16 @@ const PlinkoGame = () => {
       ctx.shadowBlur = 10;
       ctx.fill();
       ctx.shadowColor = 'transparent';
-      ctx.shadowBlur = 0;
 
-
-      if (y < height - verticalSpacing - ballRadius && step <= rows) {
+      if (elapsedTime < totalPathTime) {
         requestAnimationFrame(animate);
       } else {
-        // Landed in a bucket
-        const multipliers = MULTIPLIERS[risk];
-        const finalBucketIndex = Math.floor((x / width) * BUCKET_COUNT);
-        const finalBucket = Math.max(0, Math.min(finalBucketIndex, BUCKET_COUNT - 1));
-        
-        const multiplier = multipliers[finalBucket];
+        const finalPathSum = path.reduce((a, b) => a + b, 0);
+        const multipliers = currentMultipliers[risk];
+        const midIndex = Math.floor(multipliers.length / 2);
+        const finalBucketIndex = Math.round(midIndex + finalPathSum);
+
+        const multiplier = multipliers[finalBucketIndex];
         const winnings = betAmount * multiplier;
         setBalance(prev => prev + winnings);
 
@@ -178,65 +191,111 @@ const PlinkoGame = () => {
             description: `${multiplier.toFixed(2)}x ${t.payout}`,
         });
         
-        // Final bucket animation
-        const bucketWidth = width / BUCKET_COUNT;
-        const bucketX = finalBucket * bucketWidth;
-        ctx.fillStyle = getBucketColor(multiplier);
-        ctx.globalAlpha = 0.5;
-        ctx.fillRect(bucketX, height - verticalSpacing, bucketWidth, verticalSpacing);
-        ctx.globalAlpha = 1.0;
-        
         setIsDropping(false);
       }
     };
-
-    animate();
+    requestAnimationFrame(animate);
   };
+  
+  const handleBetChange = (value: number | string) => {
+    const numValue = Number(value);
+    if (!isNaN(numValue) && numValue > 0) {
+        setBetAmount(numValue);
+    }
+  }
+
+  const quickBet = (action: 'half' | 'double' | number) => {
+    if (action === 'half') {
+        setBetAmount(prev => Math.max(0.1, prev / 2));
+    } else if (action === 'double') {
+        setBetAmount(prev => prev * 2);
+    } else {
+        setBetAmount(prev => prev + action);
+    }
+  }
+
+  const riskLevels = ['low', 'medium', 'high'];
+  const currentRiskIndex = riskLevels.indexOf(risk);
+
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
-        <div className="md:col-span-2">
-            <canvas ref={canvasRef} className="w-full aspect-[4/3] bg-card rounded-lg border-2 border-border"></canvas>
-        </div>
-
-      <Card className="w-full">
+    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 w-full">
+      {/* CONTROL PANEL */}
+      <Card className="w-full lg:col-span-1 bg-card/80">
         <CardContent className="p-4 grid gap-4">
+            <ToggleGroup type="single" defaultValue="manual" className="grid grid-cols-2">
+                <ToggleGroupItem value="manual" aria-label="Manual">Ручной</ToggleGroupItem>
+                <ToggleGroupItem value="auto" aria-label="Auto">Авто</ToggleGroupItem>
+            </ToggleGroup>
+            
             <div className="grid gap-2">
-                <Label htmlFor="bet-amount" className="flex items-center gap-2"><Wallet /> {t.betAmount}</Label>
-                <Input id="bet-amount" type="number" value={betAmount} onChange={(e) => setBetAmount(parseFloat(e.target.value))} disabled={isDropping} />
+                <Label htmlFor="bet-amount" className="text-xs text-muted-foreground">Сумма ставки</Label>
+                <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-primary">₽</span>
+                    <Input id="bet-amount" type="number" value={betAmount.toFixed(2)} onChange={(e) => handleBetChange(e.target.value)} disabled={isDropping} className="pl-8 text-lg font-bold" />
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
+                        <Button variant="ghost" size="sm" onClick={() => quickBet('half')} disabled={isDropping} className="h-auto px-2 py-1 text-xs">1/2</Button>
+                        <Button variant="ghost" size="sm" onClick={() => quickBet('double')} disabled={isDropping} className="h-auto px-2 py-1 text-xs">x2</Button>
+                    </div>
+                </div>
+            </div>
+
+             <div className="grid grid-cols-4 gap-1">
+                {[50, 100, 500, 1000].map(val => (
+                    <Button key={val} variant="secondary" size="sm" onClick={() => quickBet(val)} disabled={isDropping}>+{val}</Button>
+                ))}
             </div>
 
             <div className="grid gap-2">
-                <Label htmlFor="risk-level">{t.risk}</Label>
-                 <ToggleGroup id="risk-level" type="single" value={risk} onValueChange={(value: "low" | "medium" | "high") => value && setRisk(value)} disabled={isDropping}>
-                    <ToggleGroupItem value="low" aria-label="Low risk" className="w-full">{t.low}</ToggleGroupItem>
-                    <ToggleGroupItem value="medium" aria-label="Medium risk" className="w-full">{t.medium}</ToggleGroupItem>
-                    <ToggleGroupItem value="high" aria-label="High risk" className="w-full">{t.high}</ToggleGroupItem>
-                </ToggleGroup>
+                 <Label className="text-xs text-muted-foreground">
+                    {risk === 'low' ? "Низкий риск" : risk === 'medium' ? "Средний риск" : "Высокий риск"}
+                 </Label>
+                 <Slider
+                    value={[currentRiskIndex]}
+                    onValueChange={(value) => setRisk(riskLevels[value[0]] as 'low' | 'medium' | 'high')}
+                    max={2}
+                    step={1}
+                    disabled={isDropping}
+                 />
             </div>
 
             <div className="grid gap-2">
-                <Label htmlFor="rows">{t.rows}</Label>
+                <Label htmlFor="rows" className="text-xs text-muted-foreground">Количество рядов</Label>
                 <Select value={String(rows)} onValueChange={(val) => setRows(Number(val))} disabled={isDropping}>
-                  <SelectTrigger>
+                  <SelectTrigger id="rows">
                     <SelectValue placeholder={t.rows} />
                   </SelectTrigger>
                   <SelectContent>
-                    {[8, 10, 12, 14, 16].map(i => (
+                    {[8, 9, 10, 11, 12, 13, 14, 15, 16].map(i => (
                       <SelectItem key={i} value={String(i)}>{i}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
             </div>
             
-            <Button onClick={handleDrop} disabled={isDropping} size="lg" className="h-16 w-full text-xl bg-primary text-primary-foreground hover:bg-primary/90">
-              {isDropping ? t.dropping : t.drop}
-              {!isDropping && <Play className="ml-2" />}
+            <Button onClick={handleDrop} disabled={isDropping} size="lg" className="h-12 w-full text-lg bg-primary text-primary-foreground hover:bg-primary/90">
+              <Play className="mr-2"/>
+              {isDropping ? t.dropping : "Играть"}
             </Button>
         </CardContent>
       </Card>
+
+      {/* GAME AREA */}
+        <div className="w-full lg:col-span-3 flex flex-col items-center">
+            <canvas ref={canvasRef} className="w-full max-w-2xl aspect-square"></canvas>
+            <div className={cn("grid gap-1 mt-[-10%] w-full max-w-2xl px-[2%]")} style={{gridTemplateColumns: `repeat(${rows + 1}, 1fr)`}}>
+                {currentMultipliers[risk].map((m, i) => (
+                    <div key={i} className="aspect-square flex items-center justify-center text-xs font-bold rounded-md"
+                         style={{backgroundColor: getBucketColor(m), color: m > 0.5 ? 'hsl(var(--card))' : 'hsl(var(--foreground))'}}>
+                        x{m}
+                    </div>
+                ))}
+            </div>
+        </div>
     </div>
   );
 };
 
 export default PlinkoGame;
+
+    
