@@ -48,7 +48,7 @@ const generateCurveData = (crashPoint: number) => {
 
     for (let i = 0; i <= steps; i++) {
         const t = (i / steps);
-        const multiplier = 1 + (crashPoint - 1) * Math.pow(t, 2); // Use a power curve for smoother start
+        const multiplier = 1 + (crashPoint - 1) * Math.pow(t, 2.5); // Use a power curve for smoother start
         data.push({ time: t, value: multiplier });
     }
     if (data[data.length - 1].value < crashPoint) {
@@ -93,34 +93,31 @@ export default function CrashGame() {
   const animationFrameRef = useRef<number>();
   
   // Refs to hold the latest state for use in the animation loop
-  const hasPlacedBetRef = useRef(hasPlacedBet);
-  const isCashedOutRef = useRef(isCashedOut);
-  const currentBetAmountRef = useRef(betAmount);
-  const autoCashoutRef = useRef({ enabled: autoCashoutEnabled, value: autoCashout });
+  const playerStateRef = useRef({
+      hasPlacedBet,
+      isCashedOut,
+      betAmount,
+      autoCashoutEnabled,
+      autoCashout,
+      balance
+  });
 
   useEffect(() => {
-    hasPlacedBetRef.current = hasPlacedBet;
-  }, [hasPlacedBet]);
+      playerStateRef.current = {
+          hasPlacedBet,
+          isCashedOut,
+          betAmount,
+          autoCashoutEnabled,
+          autoCashout,
+          balance
+      };
+  }, [hasPlacedBet, isCashedOut, betAmount, autoCashoutEnabled, autoCashout, balance]);
   
-  useEffect(() => {
-    isCashedOutRef.current = isCashedOut;
-  }, [isCashedOut]);
-  
-  useEffect(() => {
-    currentBetAmountRef.current = betAmount;
-  }, [betAmount]);
-  
-  useEffect(() => {
-    autoCashoutRef.current = { enabled: autoCashoutEnabled, value: autoCashout };
-  }, [autoCashoutEnabled, autoCashout]);
-
-
   const handleCashout = useCallback((cashoutMultiplier: number, isAuto: boolean) => {
-    if (!hasPlacedBetRef.current || isCashedOutRef.current) return;
+    if (!playerStateRef.current.hasPlacedBet || playerStateRef.current.isCashedOut) return;
 
     setIsCashedOut(true);
-    isCashedOutRef.current = true;
-    const bet = currentBetAmountRef.current;
+    const bet = playerStateRef.current.betAmount;
     const wonAmount = bet * cashoutMultiplier;
     setBalance(prev => prev + wonAmount);
 
@@ -154,8 +151,8 @@ export default function CrashGame() {
           const dataIndex = Math.min(Math.floor(progress * curve.length), curve.length-1)
           setChartData(curve.slice(0, dataIndex + 1));
           
-          if (hasPlacedBetRef.current && !isCashedOutRef.current && autoCashoutRef.current.enabled && currentMultiplier >= autoCashoutRef.current.value) {
-            handleCashout(autoCashoutRef.current.value, true);
+          if (playerStateRef.current.hasPlacedBet && !playerStateRef.current.isCashedOut && playerStateRef.current.autoCashoutEnabled && currentMultiplier >= playerStateRef.current.autoCashout) {
+            handleCashout(playerStateRef.current.autoCashout, true);
           }
           
           if (progress < 1) {
@@ -163,7 +160,7 @@ export default function CrashGame() {
           } else {
             setMultiplier(crashPoint);
 
-            if(hasPlacedBetRef.current && !isCashedOutRef.current) {
+            if(playerStateRef.current.hasPlacedBet && !playerStateRef.current.isCashedOut) {
                 toast({
                   title: t.crashedTitle,
                   description: `${t.rocketCrashedAt} ${crashPoint.toFixed(2)}x.`,
@@ -368,3 +365,4 @@ export default function CrashGame() {
     </div>
   );
 }
+
