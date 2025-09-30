@@ -200,9 +200,9 @@ export default function CrashGame() {
       case 'cashed_out':
         return <Button disabled size="lg" className="h-16 w-full text-xl bg-green-500">{t.cashedOut}</Button>;
       case 'crashed':
-         return <Button onClick={handleBet} size="lg" className="h-16 w-full bg-primary text-xl text-primary-foreground hover:bg-primary/90"><Play className="mr-2" />{t.playAgain}</Button>;
+         return <Button onClick={handleBet} size="lg" className="h-14 w-full text-xl"><Play className="mr-2" />{t.playAgain}</Button>;
       default:
-        return <Button onClick={handleBet} size="lg" className="h-16 w-full bg-primary text-xl text-primary-foreground hover:bg-primary/90"><Play className="mr-2" />{t.placeBet}</Button>;
+        return <Button onClick={handleBet} size="lg" className="h-14 w-full text-xl"><Play className="mr-2" />{t.placeBet}</Button>;
     }
   };
 
@@ -216,7 +216,7 @@ export default function CrashGame() {
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
       <Card className="lg:col-span-2 bg-card/80 backdrop-blur-sm">
-        <CardContent className="relative aspect-video p-2 sm:p-4">
+        <CardContent className="relative aspect-video p-0">
           <div className="absolute inset-0 top-1/2 left-1/2 z-10 -translate-x-1/2 -translate-y-1/2 text-center">
             <p className={`font-headline font-bold transition-colors duration-300 ${getMultiplierColor()}`} style={{ fontSize: 'clamp(3rem, 10vw, 6rem)' }}>
               {multiplier.toFixed(2)}x
@@ -245,7 +245,6 @@ export default function CrashGame() {
           <CardTitle className="flex items-center gap-2"><Rocket />{t.controls}</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4">
-          {renderButton()}
           <div className="grid gap-2">
             <Label htmlFor="bet-amount" className="flex items-center gap-2"><Wallet />{t.betAmount}</Label>
             <Input id="bet-amount" type="number" value={betAmount} onChange={(e) => setBetAmount(parseFloat(e.target.value))} disabled={gameState === 'running' || gameState === 'betting' || gameState === 'cashed_out'} />
@@ -255,6 +254,9 @@ export default function CrashGame() {
             <Input id="auto-cashout" type="number" value={autoCashout} onChange={(e) => setAutoCashout(parseFloat(e.target.value) || 0)} placeholder="2.0" disabled={gameState === 'running' || gameState === 'betting' || gameState === 'cashed_out'} />
           </div>
         </CardContent>
+        <CardFooter>
+            {renderButton()}
+        </CardFooter>
       </Card>
     </div>
   );
