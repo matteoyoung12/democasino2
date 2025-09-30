@@ -1,18 +1,25 @@
 
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Play, PiggyBank } from 'lucide-react';
+import { Play, PiggyBank, HelpCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useBalance } from '@/contexts/BalanceContext';
-import { useLanguage } from '@/contexts/LanguageContext';
 import { translations } from '@/lib/translations';
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 type GameState = 'betting' | 'playing' | 'flipping' | 'busted';
 type Choice = 'left' | 'right' | null;
@@ -37,7 +44,6 @@ const Coin = ({ side, isFlipping }: { side: 'left' | 'right', isFlipping: boolea
 
 
 export default function UpXGame() {
-  const { language } = useLanguage();
   const t = translations.ru; 
 
   const [gameState, setGameState] = useState<GameState>('betting');
@@ -205,7 +211,24 @@ export default function UpXGame() {
 
             <MainButton />
 
-            <Button variant="outline">Как играть?</Button>
+            <Dialog>
+                <DialogTrigger asChild>
+                    <Button variant="outline"><HelpCircle className="mr-2"/>Как играть?</Button>
+                </DialogTrigger>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Как играть в UP-X</DialogTitle>
+                        <DialogDescription className="space-y-2 pt-4 text-foreground">
+                            <p>Цель игры — угадать правильную сторону монеты и подняться как можно выше по лестнице множителей.</p>
+                            <p>1. **Сделайте ставку.** Используйте панель управления, чтобы установить сумму вашей ставки.</p>
+                            <p>2. **Начните игру.** Нажмите кнопку "Играть", чтобы начать раунд.</p>
+                            <p>3. **Сделайте выбор.** На каждом раунде выбирайте одну из двух сторон ('Blat' или 'Fam').</p>
+                            <p>4. **Поднимайтесь или проигрывайте.** Если вы угадали, ваш множитель увеличится, и вы перейдете на следующий раунд. Вы можете забрать свой выигрыш в любой момент, нажав на кнопку "Забрать". Если вы не угадали, вы проигрываете ставку.</p>
+                             <p>5. **Риск.** Чем выше вы поднимаетесь, тем больше выигрыш, но и риск потерять все тоже растет!</p>
+                        </DialogDescription>
+                    </DialogHeader>
+                </DialogContent>
+            </Dialog>
         </CardContent>
       </Card>
       
@@ -277,5 +300,3 @@ export default function UpXGame() {
     </div>
   );
 }
-
-  

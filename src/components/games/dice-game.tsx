@@ -1,25 +1,31 @@
 
 "use client";
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useBalance } from '@/contexts/BalanceContext';
-import { useLanguage } from '@/contexts/LanguageContext';
 import { translations } from '@/lib/translations';
 import { Slider } from '@/components/ui/slider';
-import { ArrowDown, ArrowUp, Zap } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { ArrowDown, ArrowUp, HelpCircle } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 type BetDirection = 'under' | 'over';
 
 const AnimatedDigit = ({ finalDigit }: { finalDigit: number }) => {
     const [digit, setDigit] = useState(0);
 
-    useEffect(() => {
+    useState(() => {
         let animationFrameId: number;
         const animate = () => {
             const newDigit = Math.floor(Math.random() * 10);
@@ -37,6 +43,7 @@ const AnimatedDigit = ({ finalDigit }: { finalDigit: number }) => {
             cancelAnimationFrame(animationFrameId);
             clearTimeout(timer);
         };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [finalDigit]);
 
     return (
@@ -54,8 +61,7 @@ const StaticDigit = ({ digit }: { digit: number }) => (
 
 
 export default function DiceGame() {
-    const { language } = useLanguage();
-    const t = translations[language];
+    const t = translations.ru;
 
     const [betAmount, setBetAmount] = useState(1.00);
     const [winChance, setWinChance] = useState(50.00);
@@ -67,11 +73,12 @@ export default function DiceGame() {
     const { balance, setBalance } = useBalance();
     const { toast } = useToast();
 
-    useEffect(() => {
+    useState(() => {
         if (winChance > 0 && winChance < 100) {
             const calculatedMultiplier = (100 / winChance) * 0.95; // 5% house edge
             setMultiplier(calculatedMultiplier);
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [winChance]);
 
     const handleRoll = (direction: BetDirection) => {
@@ -179,7 +186,23 @@ export default function DiceGame() {
                             ))}
                         </div>
                     </div>
-                    <Button variant="outline">Как играть?</Button>
+                    <Dialog>
+                        <DialogTrigger asChild>
+                            <Button variant="outline"><HelpCircle className="mr-2"/>Как играть?</Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Как играть в Кости</DialogTitle>
+                                <DialogDescription className="space-y-2 pt-4 text-foreground">
+                                    <p>Цель игры — угадать, будет ли выпавшее число "Больше" или "Меньше" выбранного вами.</p>
+                                    <p>1. **Сделайте ставку.** Установите сумму, которую вы хотите поставить.</p>
+                                    <p>2. **Выберите шанс.** С помощью слайдера установите "Шанс выигрыша". Это определит ваш коэффициент: чем ниже шанс, тем выше выплата.</p>
+                                    <p>3. **Сделайте выбор.** Нажмите на кнопку "Меньше" или "Больше", чтобы сделать ставку на то, что случайное число от 0 до 999 999 выпадет в выбранном диапазоне.</p>
+                                    <p>4. **Результат.** После броска вы сразу узнаете, выиграли вы или проиграли. Удачи!</p>
+                                </DialogDescription>
+                            </DialogHeader>
+                        </DialogContent>
+                    </Dialog>
                 </CardContent>
             </Card>
 

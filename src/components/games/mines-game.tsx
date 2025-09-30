@@ -1,16 +1,32 @@
+
 "use client";
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Bomb, Gem, Play, PiggyBank } from 'lucide-react';
+import { Bomb, Gem, Play, PiggyBank, HelpCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useBalance } from '@/contexts/BalanceContext';
-import { useLanguage } from '@/contexts/LanguageContext';
 import { translations } from '@/lib/translations';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
 
 type Tile = {
   isMine: boolean;
@@ -26,8 +42,7 @@ const createInitialGrid = (): Tile[] => {
 }
 
 export default function MinesGame() {
-  const { language } = useLanguage();
-  const t = translations[language];
+  const t = translations.ru;
 
   const [gameState, setGameState] = useState<GameState>('betting');
   const [grid, setGrid] = useState<Tile[]>(createInitialGrid());
@@ -179,11 +194,12 @@ export default function MinesGame() {
       }
       return (
         <Button onClick={() => {
-            setGameState('betting');
-            setGrid(createInitialGrid());
-            setRevealedGems(0);
             if (gameState === 'betting') {
                 startGame();
+            } else { // 'busted'
+                setGameState('betting');
+                setGrid(createInitialGrid());
+                setRevealedGems(0);
             }
         }} size="lg" className="h-16 w-full text-xl bg-primary text-primary-foreground hover:bg-primary/90">
             <Play className="mr-2"/> {gameState === 'busted' ? t.playAgain : "Играть"}
@@ -221,19 +237,42 @@ export default function MinesGame() {
 
             <div className="grid gap-2">
                 <Label className="font-semibold">КОЛИЧЕСТВО БОМБ</Label>
-                <div className="grid grid-cols-5 gap-2">
-                    {[3, 5, 10, 24].map(count => (
-                        <Button key={count} variant={mineCount === count ? 'destructive' : 'secondary'} onClick={() => setMineCount(count)} disabled={gameState === 'playing'}>
-                            {count}
-                        </Button>
-                    ))}
-                     <Button variant="secondary" disabled={gameState === 'playing'}>Изменить</Button>
-                </div>
+                 <Select 
+                    value={String(mineCount)} 
+                    onValueChange={(val) => setMineCount(Number(val))}
+                    disabled={gameState === 'playing'}
+                >
+                    <SelectTrigger>
+                        <SelectValue placeholder="Количество бомб" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {Array.from({ length: 23 }, (_, i) => i + 2).map(count => (
+                             <SelectItem key={count} value={String(count)}>{count}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
             </div>
 
             <MainButton />
 
-            <Button variant="outline">Как играть?</Button>
+            <Dialog>
+                <DialogTrigger asChild>
+                    <Button variant="outline"><HelpCircle className="mr-2"/>Как играть?</Button>
+                </DialogTrigger>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Как играть в Мины</DialogTitle>
+                        <DialogDescription className="space-y-2 pt-4 text-foreground">
+                            <p>Цель игры — открыть как можно больше ячеек с кристаллами, не попав на мину.</p>
+                            <p>1. **Сделайте ставку.** Установите сумму ставки и выберите количество мин на поле.</p>
+                            <p>2. **Начните игру.** Нажмите "Играть", чтобы начать раунд.</p>
+                            <p>3. **Открывайте ячейки.** Нажимайте на плитки, чтобы открыть их. За каждый найденный кристалл ваш выигрыш будет увеличиваться.</p>
+                            <p>4. **Остерегайтесь мин!** Если вы откроете ячейку с миной, игра закончится, и вы потеряете свою ставку.</p>
+                            <p>5. **Забирайте выигрыш.** Вы можете забрать свой текущий выигрыш в любой момент, нажав на кнопку "Забрать".</p>
+                        </DialogDescription>
+                    </DialogHeader>
+                </DialogContent>
+            </Dialog>
         </CardContent>
       </Card>
       
