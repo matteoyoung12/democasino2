@@ -1,10 +1,9 @@
-
 "use client";
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Bomb, Gem, Play, Wallet, PiggyBank } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -16,7 +15,6 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useBalance } from '@/contexts/BalanceContext';
-import Link from 'next/link';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { translations } from '@/lib/translations';
 
@@ -162,16 +160,12 @@ export default function MinesGame() {
   const isCashingOut = gameState === 'playing' && revealedGems > 0;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
-        <div className="md:col-span-2 grid grid-cols-5 gap-2 p-4 bg-card rounded-lg">
-            {gameState === 'betting' && !grid.some(t => t.isRevealed)
-             ? Array(GRID_SIZE).fill(0).map((_, i) => <div key={i} className="aspect-square rounded-lg bg-primary/10" />)
-             : renderGrid()
-            }
-        </div>
-
-      <Card className="w-full">
-        <CardContent className="p-4 grid gap-4">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full">
+      <Card className="lg:col-span-1 bg-card/80">
+        <CardHeader>
+            <CardTitle>Управление</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-4">
             <>
               <div className="grid gap-2">
                 <Label htmlFor="bet-amount" className="flex items-center gap-2"><Wallet /> {t.betAmount}</Label>
@@ -191,33 +185,40 @@ export default function MinesGame() {
                 </Select>
               </div>
 
-              {(gameState === 'playing' || gameState === 'busted') && (
-                <div className="flex flex-col items-start gap-1 col-span-2 border-t pt-4 mt-4">
+              {gameState === 'playing' && (
+                <Button onClick={handleCashout} disabled={!isCashingOut} size="lg" className="h-16 w-full text-xl bg-green-500 hover:bg-green-600">
+                  <PiggyBank className="mr-2" /> {t.cashOut} { (betAmount * currentMultiplier).toFixed(2) }
+                </Button>
+              )}
+               {(gameState === 'betting' || gameState === 'busted') && (
+                 <Button onClick={gameState === 'busted' ? () => {
+                    setGameState('betting');
+                    setGrid(createInitialGrid());
+                } : startGame} size="lg" className="h-16 w-full text-xl bg-primary text-primary-foreground hover:bg-primary/90">
+                    <Play className="mr-2"/> {gameState === 'busted' ? t.playAgain : t.placeBet}
+                </Button>
+               )}
+            </>
+        </CardContent>
+      </Card>
+      
+       <Card className="lg:col-span-2 bg-card/80">
+        <CardContent className="p-4 relative">
+             {(gameState === 'playing' || gameState === 'busted') && (
+                <div className="absolute top-4 right-4 bg-background/80 p-2 rounded-lg text-sm space-y-1 z-10">
                     <p>{t.gemsFound}: <span className="font-bold text-primary">{revealedGems}</span></p>
                     <p>{t.current}: <span className="font-bold text-primary">{currentMultiplier.toFixed(2)}x</span></p>
                     <p>{t.next}: <span className="font-bold text-green-500">{nextMultiplier.toFixed(2)}x</span></p>
                 </div>
               )}
-
-              {gameState === 'playing' ? (
-                <Button onClick={handleCashout} disabled={!isCashingOut} size="lg" className="h-16 w-full text-xl bg-green-500 hover:bg-green-600">
-                  <PiggyBank className="mr-2" /> {t.cashOut} { (betAmount * currentMultiplier).toFixed(2) }
-                </Button>
-              ) : gameState === 'busted' ? (
-                <Button onClick={() => {
-                    setGameState('betting');
-                    setGrid(createInitialGrid());
-                }} size="lg" className="h-16 w-full text-xl">
-                    <Play className="mr-2"/> {t.playAgain}
-                </Button>
-              ) : (
-                <Button onClick={startGame} size="lg" className="h-16 w-full text-xl bg-primary text-primary-foreground hover:bg-primary/90">
-                    <Play className="mr-2"/> {t.placeBet}
-                </Button>
-              )}
-            </>
+            <div className="grid grid-cols-5 gap-2">
+                {gameState === 'betting' && !grid.some(t => t.isRevealed)
+                 ? Array(GRID_SIZE).fill(0).map((_, i) => <div key={i} className="aspect-square rounded-lg bg-primary/10" />)
+                 : renderGrid()
+                }
+            </div>
         </CardContent>
-      </Card>
+       </Card>
     </div>
   );
 }
