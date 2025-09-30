@@ -33,10 +33,10 @@ const calculateMultiplier = (round: number): number => {
 
 const Coin = ({ side, isFlipping }: { side: 'left' | 'right', isFlipping: boolean }) => (
     <div className={cn("relative w-32 h-32 preserve-3d", isFlipping && "animate-flip")}>
-        <div className="absolute w-full h-full backface-hidden rounded-full border-4 flex items-center justify-center bg-blue-500/20 border-blue-500">
+        <div className="absolute w-full h-full backface-hidden rounded-full border-4 flex items-center justify-center bg-blue-500 border-blue-500">
             <span className="text-4xl font-bold text-blue-400">Blat</span>
         </div>
-        <div className="absolute w-full h-full backface-hidden rounded-full border-4 flex items-center justify-center bg-red-500/20 border-red-500 transform-rotate-y-180">
+        <div className="absolute w-full h-full backface-hidden rounded-full border-4 flex items-center justify-center bg-red-500 border-red-500 transform-rotate-y-180">
             <span className="text-4xl font-bold text-red-400">Fam</span>
         </div>
     </div>
@@ -251,24 +251,12 @@ export default function UpXGame() {
                                 disabled={gameState !== 'playing'}
                                 className={cn(
                                     "h-32 w-32 rounded-full border-4 transition-all duration-300 flex items-center justify-center",
-                                    gameState === 'playing' ? "cursor-pointer hover:scale-110 bg-blue-500/20 border-blue-500" : "border-muted bg-muted/20",
+                                    gameState === 'playing' ? "cursor-pointer hover:scale-110 bg-blue-500 border-blue-500" : "border-muted bg-muted/20",
                                     gameState === 'busted' && winSide === 'left' && "border-green-500 bg-green-500/20 animate-pulse",
                                     gameState === 'busted' && winSide !== 'left' && "border-red-500 bg-red-500/20"
                                 )}
                             >
-                                <span className="text-4xl font-bold text-blue-400">Blat</span>
-                            </button>
-                            <button
-                                onClick={() => handleChoice('right')}
-                                disabled={gameState !== 'playing'}
-                                className={cn(
-                                    "h-32 w-32 rounded-full border-4 transition-all duration-300 flex items-center justify-center",
-                                    gameState === 'playing' ? "cursor-pointer hover:scale-110 bg-red-500/20 border-red-500" : "border-muted bg-muted/20",
-                                    gameState === 'busted' && winSide === 'right' && "border-green-500 bg-green-500/20 animate-pulse",
-                                    gameState === 'busted' && winSide !== 'right' && "border-red-500 bg-red-500/20"
-                                )}
-                            >
-                                <span className="text-4xl font-bold text-red-400">Fam</span>
+                                <span className="text-4xl font-bold text-white">Blat</span>
                             </button>
                         </>
                     )}
@@ -300,3 +288,5 @@ export default function UpXGame() {
     </div>
   );
 }
+
+    
