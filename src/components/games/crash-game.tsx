@@ -352,7 +352,7 @@ export default function CrashGame() {
         <Card className="lg:col-span-2 bg-card/80">
             <CardContent className="p-4">
                  <h3 className="font-bold text-xl mb-4 flex items-center gap-2"><History/> История раундов</h3>
-                 <div className="grid grid-cols-3 gap-2 text-center">
+                 <div className="flex flex-wrap gap-2">
                     {history.map((h, i) => (
                          <div key={i} className={cn("p-3 rounded-lg font-bold text-lg", h >= 10 ? 'text-purple-400' : h >= 2 ? 'text-green-400' : 'text-red-400', 'bg-secondary')}>
                             {h.toFixed(2)}x
