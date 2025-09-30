@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Rocket, Users, History, Minus, Plus } from 'lucide-react';
+import { Users, Minus, Plus } from 'lucide-react';
 import { useBalance } from '@/contexts/BalanceContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { translations } from '@/lib/translations';
@@ -28,6 +28,8 @@ type Player = {
   winnings?: number;
 };
 
+// --- Game Logic Engine ---
+// Using PRNG for deterministic randomness based on a seed
 const prng = (seed: number) => {
   let t = (seed += 0x6d2b79f5);
   t = Math.imul(t ^ (t >>> 15), t | 1);
@@ -72,27 +74,27 @@ const initialPlayers: Player[] = [
 export default function CrashGame() {
   const { language } = useLanguage();
   const t = translations[language];
-
+  const { balance, setBalance } = useBalance();
+  const { toast } = useToast();
+  
+  // --- State Management ---
   const [phase, setPhase] = useState<GamePhase>('BETTING');
   const [countdown, setCountdown] = useState(10);
   const [multiplier, setMultiplier] = useState(1.0);
   const [history, setHistory] = useState<number[]>([1.23, 4.56, 2.01, 10.89, 1.01, 3.14, 5.00, 1.74, 1.35, 18.40, 6.70, 2.69]);
   const [chartData, setChartData] = useState<{ time: number; value: number }[]>([{ time: 0, value: 1.0 }]);
   const [players, setPlayers] = useState<Player[]>([]);
-
+  
+  // --- User Input State ---
   const [betAmount, setBetAmount] = useState(100);
   const [autoCashout, setAutoCashout] = useState(1.15);
   const [autoCashoutEnabled, setAutoCashoutEnabled] = useState(true);
-  
-  const { balance, setBalance } = useBalance();
-  const { toast } = useToast();
 
+  // --- Refs for reliable state access in game loop ---
   const playerStateRef = useRef({
       hasPlacedBet: false,
       isCashedOut: false,
-      betAmount: 100,
-      autoCashoutEnabled: true,
-      autoCashout: 1.15,
+      currentBetAmount: 100,
   });
 
   const gameLogicRef = useRef({
@@ -101,31 +103,61 @@ export default function CrashGame() {
       startTime: 0,
   });
 
+  // --- Game Loop and State Transitions ---
   useEffect(() => {
-      playerStateRef.current = {
-          ...playerStateRef.current,
-          betAmount,
-          autoCashoutEnabled,
-          autoCashout,
-      };
-  }, [betAmount, autoCashoutEnabled, autoCashout]);
-  
-  const handleCashout = useCallback(() => {
-    if (!playerStateRef.current.hasPlacedBet || playerStateRef.current.isCashedOut) return;
+    let interval: NodeJS.Timeout | undefined;
 
-    playerStateRef.current.isCashedOut = true;
-    const cashoutMultiplier = multiplier;
-    const bet = playerStateRef.current.betAmount;
-    const wonAmount = bet * cashoutMultiplier;
-    setBalance(prev => prev + wonAmount);
+    if (phase === 'BETTING') {
+      // Reset for new round
+      playerStateRef.current.hasPlacedBet = false;
+      playerStateRef.current.isCashedOut = false;
+      setMultiplier(1.00);
+      setChartData([{ time: 0, value: 1.0 }]);
+      setPlayers(initialPlayers.sort(() => 0.5 - Math.random()).slice(0, Math.floor(Math.random() * 6) + 5));
 
-    toast({
-        title: t.cashedOut,
-        description: `${t.youWonAmount} ${wonAmount.toFixed(2)} ${t.creditsAt} ${cashoutMultiplier.toFixed(2)}x!`,
-    });
-  }, [setBalance, t, toast, multiplier]);
+      let count = 10;
+      setCountdown(count);
+      interval = setInterval(() => {
+        count--;
+        setCountdown(count);
+        if (count <= 0) {
+          clearInterval(interval);
+          setPhase('RUNNING');
+        }
+      }, 1000);
 
+    } else if (phase === 'RUNNING') {
+      runGame();
+    } else if (phase === 'CRASHED') {
+      cancelAnimationFrame(gameLogicRef.current.animationFrameId);
+      const crashPoint = gameLogicRef.current.crashPoint;
 
+      // Handle loss
+      if (playerStateRef.current.hasPlacedBet && !playerStateRef.current.isCashedOut) {
+        toast({
+          title: t.crashedTitle,
+          description: `${t.rocketCrashedAt} ${crashPoint.toFixed(2)}x.`,
+          variant: 'destructive',
+        });
+      }
+      
+      // Update history and prepare for next round
+      setHistory(prev => [crashPoint, ...prev].slice(0, 20));
+      interval = setTimeout(() => {
+        setPhase('BETTING');
+      }, 3000);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+      if (gameLogicRef.current.animationFrameId) {
+        cancelAnimationFrame(gameLogicRef.current.animationFrameId);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
+
+  // --- Core Game Animation ---
   const runGame = useCallback(() => {
       const seed = Date.now() + Math.random();
       const crashPoint = generateCrashPoint(seed);
@@ -147,13 +179,20 @@ export default function CrashGame() {
               const curveIndex = Math.floor(progress * (curve.length - 1));
               currentMultiplier = curve[curveIndex]?.value || 1;
           }
-
+          
           setMultiplier(currentMultiplier);
-          const dataIndex = Math.min(Math.floor(progress * curve.length), curve.length-1);
+          const dataIndex = Math.min(Math.floor(progress * curve.length), curve.length - 1);
           setChartData(curve.slice(0, dataIndex + 1));
           
-          if (playerStateRef.current.hasPlacedBet && !playerStateRef.current.isCashedOut && playerStateRef.current.autoCashoutEnabled && currentMultiplier >= playerStateRef.current.autoCashout) {
-            handleCashout();
+          // Auto-cashout logic
+          if (
+              playerStateRef.current.hasPlacedBet && 
+              !playerStateRef.current.isCashedOut && 
+              autoCashoutEnabled && 
+              currentMultiplier >= autoCashout
+          ) {
+            // Using a function call to ensure the latest state is used
+            handleCashout(currentMultiplier);
           }
           
           if (progress < 1) {
@@ -165,55 +204,10 @@ export default function CrashGame() {
       };
       
       gameLogicRef.current.animationFrameId = requestAnimationFrame(animate);
-  }, [handleCashout]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoCashout, autoCashoutEnabled]);
   
-  useEffect(() => {
-    let interval: NodeJS.Timeout | undefined;
-
-    if (phase === 'BETTING') {
-      playerStateRef.current.isCashedOut = false;
-      playerStateRef.current.hasPlacedBet = false;
-      setMultiplier(1.00);
-      setChartData([{ time: 0, value: 1.0 }]);
-      setPlayers(initialPlayers.sort(() => 0.5 - Math.random()).slice(0, Math.floor(Math.random() * 6) + 3));
-
-      let count = 10;
-      setCountdown(count);
-      interval = setInterval(() => {
-        count--;
-        setCountdown(count);
-        if (count <= 0) {
-          clearInterval(interval);
-          setPhase('RUNNING');
-        }
-      }, 1000);
-
-    } else if (phase === 'RUNNING') {
-      runGame();
-    } else if (phase === 'CRASHED') {
-      cancelAnimationFrame(gameLogicRef.current.animationFrameId);
-      const crashPoint = gameLogicRef.current.crashPoint;
-      if (playerStateRef.current.hasPlacedBet && !playerStateRef.current.isCashedOut) {
-        toast({
-          title: t.crashedTitle,
-          description: `${t.rocketCrashedAt} ${crashPoint.toFixed(2)}x.`,
-          variant: 'destructive',
-        });
-      }
-      setHistory(prev => [crashPoint, ...prev].slice(0, 20));
-
-      interval = setTimeout(() => {
-        setPhase('BETTING');
-      }, 3000);
-    }
-
-    return () => {
-      if (interval) clearInterval(interval);
-      if (gameLogicRef.current.animationFrameId) cancelAnimationFrame(gameLogicRef.current.animationFrameId);
-    };
-  }, [phase, runGame, t, toast]);
-
-
+  // --- User Actions ---
   const placeBet = () => {
       if (playerStateRef.current.hasPlacedBet) return;
       if (betAmount <= 0) {
@@ -226,9 +220,25 @@ export default function CrashGame() {
       }
       setBalance(prev => prev - betAmount);
       playerStateRef.current.hasPlacedBet = true;
+      playerStateRef.current.currentBetAmount = betAmount;
       toast({title: "Ставка принята!", description: `Ваша ставка ${betAmount} ₽ будет сыграна в следующем раунде.`});
-  }
+  };
 
+  const handleCashout = (cashoutMultiplier: number) => {
+    if (!playerStateRef.current.hasPlacedBet || playerStateRef.current.isCashedOut) return;
+
+    playerStateRef.current.isCashedOut = true;
+    const bet = playerStateRef.current.currentBetAmount;
+    const wonAmount = bet * cashoutMultiplier;
+    setBalance(prev => prev + wonAmount);
+
+    toast({
+        title: t.cashedOut,
+        description: `${t.youWonAmount} ${wonAmount.toFixed(2)} ${t.creditsAt} ${cashoutMultiplier.toFixed(2)}x!`,
+    });
+  };
+  
+  // --- UI Helpers ---
   const getMultiplierColor = (val: number) => {
     if (val >= 10) return 'text-purple-400';
     if (val >= 2) return 'text-cyan-400';
@@ -238,42 +248,40 @@ export default function CrashGame() {
   const MainButton = () => {
     if (phase === 'RUNNING') {
         if (!playerStateRef.current.hasPlacedBet) {
-             return <Button disabled size="lg" className="h-16 w-full text-xl bg-red-500 text-white">Ожидание следующего раунда</Button>
+             return <Button disabled size="lg" className="h-16 w-full text-xl bg-yellow-500 text-black">Ожидание следующего раунда</Button>
         }
         if (playerStateRef.current.isCashedOut) {
              return <Button disabled size="lg" className="h-16 w-full text-xl bg-yellow-500 text-black">Выигрыш забран!</Button>
         }
-        return <Button onClick={handleCashout} size="lg" className="h-16 w-full text-xl bg-yellow-500 text-black hover:bg-yellow-600">Забрать {multiplier.toFixed(2)}x</Button>;
+        return <Button onClick={() => handleCashout(multiplier)} size="lg" className="h-16 w-full text-xl bg-green-500 text-white hover:bg-green-600">Забрать {multiplier.toFixed(2)}x</Button>;
     }
     
-    // In betting phase
-    if (playerStateRef.current.hasPlacedBet) {
-        return <Button disabled size="lg" className="h-16 w-full text-xl bg-yellow-500 text-black">Ожидание нового раунда</Button>;
+    if (phase === 'CRASHED' || phase === 'BETTING') {
+        if (playerStateRef.current.hasPlacedBet) {
+            return <Button disabled size="lg" className="h-16 w-full text-xl bg-yellow-500 text-black">Ожидание нового раунда</Button>;
+        }
+        return <Button onClick={placeBet} size="lg" className="h-16 w-full text-xl bg-green-500 text-white hover:bg-green-600">Сделать ставку</Button>;
     }
-
-    return <Button onClick={placeBet} size="lg" className="h-16 w-full text-xl bg-green-500 text-white hover:bg-green-600">Сделать ставку</Button>;
+    return null;
   }
 
   const adjustBet = (amount: number) => {
       setBetAmount(prev => Math.max(0, prev + amount));
   }
-  const setQuickBet = (amount: number) => {
-      setBetAmount(amount);
-  }
 
   return (
     <div className="grid grid-cols-12 gap-4 h-full bg-[#1A242D] text-white p-4">
-        {/* Players List */}
+        {/* Players List (Left) */}
         <div className="col-span-3 bg-[#0F1923] p-4 rounded-lg flex flex-col">
-            <Tabs defaultValue="all" className="w-full">
+            <Tabs defaultValue="all" className="w-full flex flex-col flex-grow">
                 <TabsList className="grid w-full grid-cols-3 bg-[#2F3B44]">
                     <TabsTrigger value="all">Все ставки</TabsTrigger>
                     <TabsTrigger value="my">Мои</TabsTrigger>
                     <TabsTrigger value="top">Топ</TabsTrigger>
                 </TabsList>
-                <TabsContent value="all" className="flex-grow mt-4">
-                     <div className="space-y-2 max-h-[60vh] overflow-y-auto">
-                        <div className="grid grid-cols-4 text-xs text-gray-400 font-bold p-2">
+                <TabsContent value="all" className="flex-grow mt-4 overflow-hidden">
+                     <div className="space-y-2 h-full overflow-y-auto">
+                        <div className="grid grid-cols-4 text-xs text-gray-400 font-bold p-2 sticky top-0 bg-[#0F1923]">
                             <span>Время</span>
                             <span>Ставка</span>
                             <span>Коэфф.</span>
@@ -281,16 +289,15 @@ export default function CrashGame() {
                         </div>
                         {players.map(p => (
                              <div key={p.id} className="grid grid-cols-4 items-center bg-[#1A242D] p-2 rounded-lg text-sm">
-                                 <div className="flex items-center gap-2">
+                                 <div className="flex items-center gap-2 col-span-1">
                                     <Avatar className="h-6 w-6">
                                         <AvatarImage src={p.avatar} />
                                         <AvatarFallback>{p.name.charAt(0)}</AvatarFallback>
                                     </Avatar>
-                                    <span className='truncate'>{p.name}</span>
                                  </div>
-                                  <div className="font-bold">{p.bet} ₽</div>
-                                  <div className={cn("font-bold", getMultiplierColor(p.cashedOutAt || 1))}>{p.cashedOutAt ? `${p.cashedOutAt.toFixed(2)}x` : '-'}</div>
-                                  <div className="text-green-400 font-bold">{p.winnings ? `${p.winnings.toFixed(2)} ₽` : '-'}</div>
+                                  <div className="font-bold col-span-1">{p.bet} ₽</div>
+                                  <div className={cn("font-bold col-span-1", getMultiplierColor(p.cashedOutAt || 1))}>{p.cashedOutAt ? `${p.cashedOutAt.toFixed(2)}x` : '-'}</div>
+                                  <div className="text-green-400 font-bold col-span-1">{p.winnings ? `${p.winnings.toFixed(2)} ₽` : '-'}</div>
                              </div>
                         ))}
                     </div>
@@ -298,44 +305,43 @@ export default function CrashGame() {
             </Tabs>
         </div>
 
-        {/* Main Game Area */}
+        {/* Main Game Area (Center) */}
         <div className="col-span-9 flex flex-col gap-4">
-            <div className="flex gap-2 bg-[#0F1923] p-2 rounded-md">
+            <div className="flex gap-2 bg-[#0F1923] p-2 rounded-md overflow-x-auto">
                 {history.map((h, i) => (
-                    <div key={i} className={cn("py-1 px-2 rounded-full font-bold text-sm text-center bg-[#1A242D]", getMultiplierColor(h))}>
+                    <div key={i} className={cn("py-1 px-3 rounded-full font-bold text-sm text-center bg-[#1A242D] flex-shrink-0", getMultiplierColor(h))}>
                         {h.toFixed(2)}x
                     </div>
                 ))}
             </div>
 
             <div className="flex-grow bg-[#0F1923] rounded-lg relative">
-                <CardContent className="relative p-0 h-full">
-                    <div className="absolute inset-0 top-1/2 left-1/2 z-10 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
-                        {phase === 'BETTING' ? (
-                            <>
-                                <p className="text-xl font-semibold text-gray-400">Раунд начнется через</p>
-                                <p className="font-bold text-7xl text-white drop-shadow-lg">
-                                    {countdown.toFixed(1)}
-                                </p>
-                            </>
-                        ) : (
-                             <p className={cn('font-bold transition-colors duration-300 drop-shadow-lg text-8xl', phase === 'CRASHED' ? 'text-red-500' : 'text-white')} >
-                                {multiplier.toFixed(2)}x
-                             </p>
-                        )}
-                    </div>
-                    <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={chartData}>
-                        <defs>
-                            <linearGradient id="colorCrash" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#FF4F4F" stopOpacity={0.8} />
-                                <stop offset="95%" stopColor="#FF4F4F" stopOpacity={0} />
-                            </linearGradient>
-                        </defs>
-                        <Area type="monotone" dataKey="value" stroke="#FF4F4F" fillOpacity={1} fill="url(#colorCrash)" strokeWidth={4} dot={false} isAnimationActive={false}/>
-                        </AreaChart>
-                    </ResponsiveContainer>
-                </CardContent>
+                <div className="absolute inset-0 top-1/2 left-1/2 z-10 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
+                    {phase === 'BETTING' ? (
+                        <>
+                            <p className="text-xl font-semibold text-gray-400">Раунд начнется через</p>
+                            <p className="font-bold text-7xl text-white drop-shadow-lg">
+                                {countdown.toFixed(1)}
+                            </p>
+                        </>
+                    ) : (
+                         <p className={cn('font-bold transition-colors duration-300 drop-shadow-lg text-8xl', phase === 'CRASHED' ? 'text-red-500' : 'text-white')} >
+                            {multiplier.toFixed(2)}x
+                         </p>
+                    )}
+                     {phase === 'CRASHED' && <p className="font-bold text-4xl text-red-500 mt-4">CRASHED</p>}
+                </div>
+                <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={chartData}>
+                    <defs>
+                        <linearGradient id="colorCrash" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#FF4F4F" stopOpacity={0.8} />
+                            <stop offset="95%" stopColor="#FF4F4F" stopOpacity={0} />
+                        </linearGradient>
+                    </defs>
+                    <Area type="monotone" dataKey="value" stroke="#FF4F4F" fillOpacity={1} fill="url(#colorCrash)" strokeWidth={4} dot={false} isAnimationActive={false}/>
+                    </AreaChart>
+                </ResponsiveContainer>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -347,37 +353,42 @@ export default function CrashGame() {
                         </TabsList>
                         <TabsContent value="bet">
                             <div className="flex flex-col gap-4">
-                                <div className="flex gap-2">
-                                     <div className="relative flex-1">
-                                        <Input type="number" value={betAmount} onChange={(e) => setBetAmount(Number(e.target.value))} disabled={playerStateRef.current.hasPlacedBet} className="bg-[#2F3B44] border-none h-12 text-lg pr-16"/>
-                                        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center">
-                                            <Button size="icon" variant="ghost" onClick={() => adjustBet(-1)} className="h-8 w-8"><Minus/></Button>
-                                            <Button size="icon" variant="ghost" onClick={() => adjustBet(1)} className="h-8 w-8"><Plus/></Button>
+                                <div className="grid grid-cols-2 gap-4">
+                                     <div className="relative col-span-2">
+                                        <Label>Сумма ставки</Label>
+                                        <div className="relative mt-1">
+                                            <Input type="number" value={betAmount} onChange={(e) => setBetAmount(Number(e.target.value))} disabled={playerStateRef.current.hasPlacedBet} className="bg-[#2F3B44] border-none h-12 text-lg pr-16"/>
+                                            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center">
+                                                <Button size="icon" variant="ghost" onClick={() => adjustBet(-10)} className="h-8 w-8"><Minus/></Button>
+                                                <Button size="icon" variant="ghost" onClick={() => adjustBet(10)} className="h-8 w-8"><Plus/></Button>
+                                            </div>
                                         </div>
                                     </div>
-                                    <MainButton/>
+                                    <div className="relative col-span-2">
+                                        <Label>Авто-вывод</Label>
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <div className="relative flex-grow">
+                                                <Input type="number" value={autoCashout} onChange={(e) => setAutoCashout(Number(e.target.value))} className="bg-[#2F3B44] border-none h-10 pl-8"/>
+                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">x</span>
+                                            </div>
+                                            <Switch checked={autoCashoutEnabled} onCheckedChange={setAutoCashoutEnabled} />
+                                        </div>
+                                    </div>
                                 </div>
                                 <div className="grid grid-cols-4 gap-2">
-                                    <Button variant="secondary" onClick={() => setQuickBet(50)} className="bg-[#2F3B44]">50</Button>
-                                    <Button variant="secondary" onClick={() => setQuickBet(100)} className="bg-[#2F3B44]">100</Button>
-                                    <Button variant="secondary" onClick={() => setQuickBet(500)} className="bg-[#2F3B44]">500</Button>
-                                    <Button variant="secondary" onClick={() => setQuickBet(1000)} className="bg-[#2F3B44]">1000</Button>
+                                    <Button variant="secondary" onClick={() => setBetAmount(50)} className="bg-[#2F3B44]">50</Button>
+                                    <Button variant="secondary" onClick={() => setBetAmount(100)} className="bg-[#2F3B44]">100</Button>
+                                    <Button variant="secondary" onClick={() => setBetAmount(500)} className="bg-[#2F3B44]">500</Button>
+                                    <Button variant="secondary" onClick={() => setBetAmount(1000)} className="bg-[#2F3B44]">1000</Button>
                                 </div>
-                                 <div className="flex items-center gap-4">
-                                    <Label>Авто-вывод</Label>
-                                    <div className="relative flex-1">
-                                         <Input type="number" value={autoCashout} onChange={(e) => setAutoCashout(Number(e.target.value))} className="bg-[#2F3B44] border-none h-10 pl-8"/>
-                                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">x</span>
-                                    </div>
-                                    <Switch checked={autoCashoutEnabled} onCheckedChange={setAutoCashoutEnabled} />
-                                </div>
+                                <MainButton/>
                             </div>
                         </TabsContent>
                     </Tabs>
                 </div>
-                {/* Second bet panel can be added here */}
                 <div className="bg-[#0F1923] p-4 rounded-lg hidden md:block">
                      {/* Placeholder for the second betting panel */}
+                     <p className="text-center text-gray-500">Второй слот для ставок</p>
                 </div>
             </div>
         </div>
