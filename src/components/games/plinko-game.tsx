@@ -17,28 +17,40 @@ import { cn } from '@/lib/utils';
 import { Slider } from '@/components/ui/slider';
 
 
-const MULTIPLIERS = {
-    low: [5.3, 2.2, 1.1, 0.9, 0.5, 0.9, 1.1, 2.2, 5.3],
-    medium: [10, 3, 1.5, 1, 0.5, 1, 1.5, 3, 10],
-    high: [25, 5, 2, 1.2, 0.4, 1.2, 2, 5, 25],
-};
-
 const getMultiplierConfig = (rows: number) => {
+    // Base multipliers for 16 rows, which allows for good variety.
     const baseMultipliers = {
-        low: [16, 9, 2, 1.4, 1.1, 1, 0.5, 1, 1.1, 1.4, 2, 9, 16],
-        medium: [110, 24, 10, 5, 3, 1.5, 0.5, 1.5, 3, 5, 10, 24, 110],
-        high: [1000, 130, 26, 9, 4, 2, 0.5, 2, 4, 9, 26, 130, 1000]
+        low:    [16, 9, 2, 1.4, 1.1, 1, 0.5, 0.5, 0.5, 1, 1.1, 1.4, 2, 9, 16],
+        medium: [110, 24, 10, 5, 3, 1.5, 1, 0.5, 1, 1.5, 3, 5, 10, 24, 110],
+        high:   [1000, 130, 26, 9, 4, 2, 1, 0.5, 1, 2, 4, 9, 26, 130, 1000]
     };
+    const baseRowCount = 15; // The number of items in baseMultipliers
 
     const count = rows + 1;
-    const midIndex = Math.floor(baseMultipliers.low.length / 2);
+    const midIndex = Math.floor(baseRowCount / 2);
     const halfCount = Math.floor(count / 2);
 
     const sliceAndMirror = (arr: number[]) => {
-        const half = arr.slice(midIndex - halfCount, midIndex);
-        const result = [...half, arr[midIndex], ...half.slice().reverse()];
-        return result.slice(0, count);
+        let half;
+        if (count % 2 === 0) { // Even number of buckets
+            const leftHalf = arr.slice(midIndex - halfCount + 1, midIndex + 1);
+            half = [...leftHalf, ...leftHalf.slice().reverse()];
+        } else { // Odd number of buckets
+            const leftHalf = arr.slice(midIndex - halfCount, midIndex);
+            half = [...leftHalf, arr[midIndex], ...leftHalf.slice().reverse()];
+        }
+        return half;
     };
+    
+    // Ensure we don't request more items than available
+    if (count > baseRowCount) {
+        return {
+            low: baseMultipliers.low.slice(0, count),
+            medium: baseMultipliers.medium.slice(0, count),
+            high: baseMultipliers.high.slice(0, count),
+        }
+    }
+
 
     return {
         low: sliceAndMirror(baseMultipliers.low),
@@ -74,27 +86,38 @@ const PlinkoGame = () => {
   const drawPlinko = useCallback((ctx: CanvasRenderingContext2D, width: number, height: number) => {
     ctx.clearRect(0, 0, width, height);
     
-    const pegRadius = width / 100;
+    const pegRadius = Math.min(width / 120, 4);
     const topPadding = height * 0.1;
-    const rowSpacing = (height - topPadding - (height * 0.15)) / (rows - 1);
+    const rowSpacing = (height - topPadding - (height * 0.15)) / (rows);
+    const horizontalPadding = width * 0.15;
     
-    // Draw Pegs (Pyramid shape)
+    ctx.fillStyle = 'hsl(225, 20%, 25%)';
+
     for (let row = 0; row < rows; row++) {
-      const numPegsInRow = row + 1;
-      const pegSpacing = width * 0.8 / row;
+      const numPegsInRow = row + 2;
+      const pegRowWidth = width - 2 * horizontalPadding;
+      const pegSpacing = pegRowWidth / (numPegsInRow - 1);
+
       for (let col = 0; col < numPegsInRow; col++) {
-        const x = (width * 0.1) + (row > 0 ? col * pegSpacing : 0) + (width * 0.8 - (numPegsInRow - 1) * pegSpacing) / 2;
+        const x = horizontalPadding + col * pegSpacing;
         const y = topPadding + row * rowSpacing;
         ctx.beginPath();
         ctx.arc(x, y, pegRadius, 0, Math.PI * 2);
-        ctx.fillStyle = 'hsl(227, 24%, 30%)'; // A bit lighter than background
-        ctx.shadowColor = 'hsl(var(--primary))';
-        ctx.shadowBlur = 5;
         ctx.fill();
-        ctx.shadowBlur = 0;
       }
     }
   }, [rows]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        drawPlinko(ctx, canvas.width, canvas.height);
+      }
+    }
+  }, [rows, drawPlinko]);
+
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -132,56 +155,84 @@ const PlinkoGame = () => {
     if (!ctx) return;
 
     const { width, height } = canvas;
-    const ballRadius = width / 80;
+    const ballRadius = Math.min(width / 100, 5);
     const topPadding = height * 0.1;
-    const rowSpacing = (height - topPadding - (height * 0.15)) / (rows - 1);
+    const rowSpacing = (height - topPadding - (height * 0.15)) / (rows);
+    const horizontalPadding = width * 0.15;
+    
+    let pathIndex = 0;
+    for (let i = 0; i < rows; i++) {
+        // Skew towards center
+        if (Math.random() > 0.5 + (pathIndex / rows) * 0.1) pathIndex--;
+        if (Math.random() < 0.5 - (pathIndex / rows) * 0.1) pathIndex++;
+    }
 
     let x = width / 2;
-    let y = ballRadius;
-    let path: number[] = [0];
-
-    for (let row = 0; row < rows; row++) {
-        path.push(Math.random() < 0.5 ? -0.5 : 0.5);
-    }
+    let y = topPadding - rowSpacing / 2; // Start above the first row
+    let ySpeed = 0;
+    let xSpeed = (Math.random() - 0.5) * 2;
     
-    let step = 0;
-    const totalPathTime = 2000;
-    const stepTime = totalPathTime / rows;
-    let startTime = performance.now();
+    let currentRow = 0;
+    let direction = 0; // -1 for left, 1 for right
 
-    const animate = (time: number) => {
+    const animate = () => {
       drawPlinko(ctx, width, height); 
       
-      const elapsedTime = time - startTime;
-      const currentStep = Math.min(Math.floor(elapsedTime / stepTime), rows - 1);
-      const stepProgress = (elapsedTime % stepTime) / stepTime;
-
-      const currentRow = currentStep;
-      const numPegsInRow = currentRow + 1;
-      const pegSpacing = width * 0.8 / currentRow;
+      // Apply gravity
+      ySpeed += 0.2;
+      y += ySpeed;
+      x += xSpeed;
       
-      const startX = width/2 + path.slice(0, currentRow + 1).reduce((a, b) => a + b, 0) * pegSpacing;
-      const endX = width/2 + path.slice(0, currentRow + 2).reduce((a, b) => a + b, 0) * pegSpacing;
+      // Bounce off walls
+      if (x + ballRadius > width || x - ballRadius < 0) {
+        xSpeed *= -0.5;
+      }
       
-      x = startX + (endX - startX) * stepProgress;
-      y = topPadding + currentRow * rowSpacing + stepProgress * rowSpacing;
+      const nextRowY = topPadding + currentRow * rowSpacing;
 
+      if (y >= nextRowY && currentRow < rows) {
+        // Hit a peg
+        const numPegsInRow = currentRow + 2;
+        const pegRowWidth = width - 2 * horizontalPadding;
+        const pegSpacing = pegRowWidth / (numPegsInRow - 1);
+        
+        let closestPegIndex = Math.round((x - horizontalPadding) / pegSpacing);
+        closestPegIndex = Math.max(0, Math.min(numPegsInRow - 1, closestPegIndex));
+        
+        const pegX = horizontalPadding + closestPegIndex * pegSpacing;
+
+        // Make it look like it hits the peg
+        y = nextRowY;
+        ySpeed *= -0.4; // Bounce
+        
+        // Decide direction
+        direction = Math.random() < 0.5 ? -1 : 1;
+        // More random direction
+        xSpeed = direction * (Math.random() * 1.5 + 0.5);
+
+        currentRow++;
+      }
+      
       ctx.beginPath();
       ctx.arc(x, y, ballRadius, 0, Math.PI * 2);
       ctx.fillStyle = 'hsl(var(--accent))';
       ctx.shadowColor = 'hsl(var(--accent))';
       ctx.shadowBlur = 10;
       ctx.fill();
-      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
 
-      if (elapsedTime < totalPathTime) {
+      if (currentRow < rows) {
         requestAnimationFrame(animate);
+      } else if (y < height - (height * 0.1)) { // Let it fall into the bucket
+         requestAnimationFrame(animate);
       } else {
-        const finalPathSum = path.reduce((a, b) => a + b, 0);
         const multipliers = currentMultipliers[risk];
-        const midIndex = Math.floor(multipliers.length / 2);
-        const finalBucketIndex = Math.round(midIndex + finalPathSum);
-
+        const bucketCount = multipliers.length;
+        const bucketWidth = (width - 2 * horizontalPadding) / bucketCount;
+        
+        let finalBucketIndex = Math.floor((x - horizontalPadding) / bucketWidth);
+        finalBucketIndex = Math.max(0, Math.min(bucketCount - 1, finalBucketIndex));
+        
         const multiplier = multipliers[finalBucketIndex];
         const winnings = betAmount * multiplier;
         setBalance(prev => prev + winnings);
@@ -285,7 +336,7 @@ const PlinkoGame = () => {
             <canvas ref={canvasRef} className="w-full max-w-2xl aspect-square"></canvas>
             <div className={cn("grid gap-1 mt-[-10%] w-full max-w-2xl px-[2%]")} style={{gridTemplateColumns: `repeat(${rows + 1}, 1fr)`}}>
                 {currentMultipliers[risk].map((m, i) => (
-                    <div key={i} className="aspect-square flex items-center justify-center text-xs font-bold rounded-md"
+                    <div key={i} className="aspect-video flex items-center justify-center text-xs font-bold rounded-md"
                          style={{backgroundColor: getBucketColor(m), color: m > 0.5 ? 'hsl(var(--card))' : 'hsl(var(--foreground))'}}>
                         x{m}
                     </div>
@@ -297,5 +348,3 @@ const PlinkoGame = () => {
 };
 
 export default PlinkoGame;
-
-    
