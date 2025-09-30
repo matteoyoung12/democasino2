@@ -1,121 +1,235 @@
-
 "use client";
 
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
-import { Coins, Play, Wallet } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { Label } from '@/components/ui/label';
+import { Card, CardContent } from '@/components/ui/card';
+import { useToast } from '@/hooks/use-toast';
+import { Play, PiggyBank } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useBalance } from '@/contexts/BalanceContext';
-import Link from 'next/link';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { translations } from '@/lib/translations';
+import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 
+type GameState = 'betting' | 'playing' | 'busted';
 
-export default function CoinFlipGame() {
+const MAX_ROUNDS = 10;
+
+const calculateMultiplier = (round: number): number => {
+  if (round === 0) return 1.0;
+  // Exponential growth for multipliers, starting from ~1.9x for round 1
+  return parseFloat((1.9 * Math.pow(2, round - 1)).toFixed(1));
+};
+
+export default function UpXGame() {
   const { language } = useLanguage();
-  const t = translations[language];
+  const t = translations.ru; // Game seems to be Russian-centric based on screenshots
 
-  const [isFlipping, setIsFlipping] = useState(false);
-  const [result, setResult] = useState<'heads' | 'tails' | null>(null);
-  const [choice, setChoice] = useState<'heads' | 'tails'>('heads');
-  const [betAmount, setBetAmount] = useState(10);
+  const [gameState, setGameState] = useState<GameState>('betting');
+  const [betAmount, setBetAmount] = useState(1.00);
+  const [currentRound, setCurrentRound] = useState(0);
+  const [winSide, setWinSide] = useState<'left' | 'right'>('left');
+  
   const { balance, setBalance } = useBalance();
   const { toast } = useToast();
 
-  const handleFlip = useCallback(() => {
+  const multipliers = useMemo(() => {
+    return Array.from({ length: MAX_ROUNDS }, (_, i) => calculateMultiplier(i + 1));
+  }, []);
+
+  const currentMultiplier = useMemo(() => {
+    if (currentRound === 0) return 1;
+    return multipliers[currentRound - 1] || 1;
+  }, [currentRound, multipliers]);
+  
+  const currentWinnings = betAmount * currentMultiplier;
+
+  const startGame = () => {
+    if (betAmount <= 0) {
+      toast({ title: "Сумма ставки должна быть положительной", variant: 'destructive' });
+      return;
+    }
     if (balance < betAmount) {
       toast({ title: t.insufficientBalance, variant: 'destructive' });
       return;
     }
 
-    setIsFlipping(true);
-    setResult(null);
     setBalance(prev => prev - betAmount);
+    setGameState('playing');
+    setCurrentRound(0);
+    setNewWinSide();
+  };
+  
+  const setNewWinSide = () => {
+    setWinSide(Math.random() < 0.5 ? 'left' : 'right');
+  }
 
-    const flipResult = Math.random() < 0.5 ? 'heads' : 'tails';
-    const resultText = flipResult === 'heads' ? t.heads : t.tails;
+  const handleChoice = (choice: 'left' | 'right') => {
+    if (gameState !== 'playing') return;
 
-    setTimeout(() => {
-      setResult(flipResult);
-      setIsFlipping(false);
-
-      if (flipResult === choice) {
-        const winnings = betAmount * 1.95; // 97.5% return
-        setBalance(prev => prev + winnings);
-        toast({ title: `${t.youWon}! ${t.itWas} ${resultText}.`, description: `${t.youWonAmount} ${winnings.toFixed(2)} ${t.credits}.` });
-      } else {
-        toast({ title: `${t.youLost}! ${t.itWas} ${resultText}.`, variant: 'destructive' });
+    if (choice === winSide) {
+      // Win
+      const nextRound = currentRound + 1;
+      setCurrentRound(nextRound);
+      setNewWinSide();
+      if (nextRound >= MAX_ROUNDS) {
+          handleCashout(true);
       }
-    }, 2000); // Animation duration
-  }, [betAmount, balance, choice, toast, setBalance, t]);
+    } else {
+      // Lose
+      setGameState('busted');
+      toast({
+        title: "Проигрыш!",
+        description: "В этот раз не повезло.",
+        variant: 'destructive',
+      });
+    }
+  };
+  
+  const handleCashout = useCallback((isAuto = false) => {
+    if (gameState !== 'playing' || currentRound === 0) return;
+
+    setBalance(prev => prev + currentWinnings);
+    toast({
+        title: "Выигрыш!",
+        description: `Вы выиграли ${currentWinnings.toFixed(2)} ₽.`,
+    });
+    setGameState('busted');
+  }, [gameState, currentRound, setBalance, currentWinnings, toast]);
+
+  const quickBet = (action: 'half' | 'double' | number) => {
+    if (typeof action === 'number') {
+        setBetAmount(prev => prev + action);
+    } else if (action === 'half') {
+        setBetAmount(prev => Math.max(0.01, parseFloat((prev / 2).toFixed(2))));
+    } else if (action === 'double') {
+        setBetAmount(prev => parseFloat((prev * 2).toFixed(2)));
+    }
+  }
+
+  const MainButton = () => {
+      if (gameState === 'playing') {
+          return (
+             <Button onClick={() => handleCashout()} disabled={currentRound === 0} size="lg" className="h-16 w-full text-xl bg-green-500 hover:bg-green-600">
+                <PiggyBank className="mr-2" /> 
+                <span>
+                    Забрать
+                    {currentRound > 0 && <span className="ml-2 font-bold">{currentWinnings.toFixed(2)} ₽</span>}
+                </span>
+            </Button>
+          )
+      }
+      return (
+        <Button onClick={() => {
+            if (gameState === 'betting') {
+                startGame();
+            } else { // 'busted'
+                setGameState('betting');
+                setCurrentRound(0);
+            }
+        }} size="lg" className="h-14 w-full text-xl bg-primary text-primary-foreground hover:bg-primary/90">
+            {gameState === 'busted' ? "Играть снова" : "Играть"}
+        </Button>
+      )
+  }
 
   return (
-    <div className="flex flex-col items-center gap-8 w-full">
-        <Card className="w-full">
-            <CardHeader>
-                <CardTitle className="text-center">{t.coinFlipTitle}</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col items-center gap-6">
-                <div className="relative w-48 h-48">
-                    <div className={cn("absolute w-full h-full rounded-full transition-transform duration-1000 preserve-3d", isFlipping && "animate-flip")}
-                         style={{ transformStyle: 'preserve-3d' }}>
-                        <div className="absolute w-full h-full rounded-full bg-primary flex items-center justify-center backface-hidden">
-                            <Coins className="h-24 w-24 text-primary-foreground" />
-                        </div>
-                        <div className="absolute w-full h-full rounded-full bg-accent flex items-center justify-center my-rotate-y-180 backface-hidden">
-                            <span className="text-4xl font-bold text-accent-foreground">?</span>
-                        </div>
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full">
+      {/* CONTROL PANEL */}
+      <Card className="lg:col-span-1 bg-card/80">
+        <CardContent className="p-4 grid gap-6">
+            <div className="grid gap-2">
+                <Label htmlFor="bet-amount" className="font-semibold">СУММА СТАВКИ</Label>
+                <div className="relative">
+                    <Input 
+                        id="bet-amount" 
+                        type="number" 
+                        value={betAmount.toFixed(2)} 
+                        onChange={(e) => setBetAmount(parseFloat(e.target.value) || 0)} 
+                        disabled={gameState === 'playing'}
+                        className="pr-20 text-lg font-bold h-12"
+                    />
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
+                        <Button variant="ghost" size="sm" onClick={() => quickBet('double')} disabled={gameState === 'playing'} className="h-auto px-2 py-1">x2</Button>
+                        <Button variant="ghost" size="sm" onClick={() => quickBet('half')} disabled={gameState === 'playing'} className="h-auto px-2 py-1">1/2</Button>
                     </div>
                 </div>
-
-                {result && !isFlipping && (
-                    <p className="text-2xl font-bold">
-                        {t.result}: <span className="capitalize text-primary">{result === 'heads' ? t.heads : t.tails}</span>
-                    </p>
-                )}
-
-                <div className="grid gap-4 w-full max-w-sm">
-                    <>
-                        <div className="grid gap-2">
-                            <Label>{t.yourChoice}</Label>
-                            <ToggleGroup type="single" value={choice} onValueChange={(value: 'heads' | 'tails') => value && setChoice(value)} disabled={isFlipping}>
-                                <ToggleGroupItem value="heads" aria-label="Toggle heads" className="w-full">{t.heads}</ToggleGroupItem>
-                                <ToggleGroupItem value="tails" aria-label="Toggle tails" className="w-full">{t.tails}</ToggleGroupItem>
-                            </ToggleGroup>
-                        </div>
-                         <div className="grid gap-2">
-                            <Label htmlFor="bet-amount"><Wallet className="inline-block mr-2" />{t.betAmount}</Label>
-                            <Input id="bet-amount" type="number" value={betAmount} onChange={(e) => setBetAmount(parseFloat(e.target.value))} disabled={isFlipping} />
-                        </div>
-                        <Button onClick={handleFlip} disabled={isFlipping} size="lg" className="w-full h-14 text-xl">
-                            {isFlipping ? t.flipping : t.flipCoin}
-                            {!isFlipping && <Play className="ml-2"/>}
-                        </Button>
-                    </>
+                <div className="grid grid-cols-4 gap-2">
+                    {[50, 100, 200, 500, 750, 1000].map(val => (
+                        <Button key={val} variant="secondary" size="sm" onClick={() => setBetAmount(val)} disabled={gameState === 'playing'}>{val}</Button>
+                    ))}
                 </div>
-            </CardContent>
-             <CardFooter className="flex-col items-center gap-2">
-                <p>{t.payout}: <span className="font-bold text-primary">1.95x</span></p>
-                <p>{t.balance}: <span className="font-bold text-primary">{balance.toFixed(2)} {t.credits}</span></p>
-            </CardFooter>
-        </Card>
-        <style jsx>{`
-            .preserve-3d { transform-style: preserve-3d; }
-            .backface-hidden { backface-visibility: hidden; }
-            .my-rotate-y-180 { transform: rotateY(180deg); }
-            @keyframes flip {
-                0% { transform: rotateY(0); }
-                100% { transform: rotateY(1800deg); }
-            }
-            .animate-flip {
-                animation: flip 2s cubic-bezier(0.45, 0, 0.55, 1);
-            }
-        `}</style>
+            </div>
+
+            <MainButton />
+
+            <Button variant="outline">Как играть?</Button>
+        </CardContent>
+      </Card>
+      
+      {/* GAME AREA */}
+       <Card className="lg:col-span-2 bg-card/80">
+        <CardContent className="p-6 flex flex-col justify-between items-center h-full min-h-[400px]">
+            <div className="flex justify-around items-center w-full">
+                <div className="text-center">
+                    <p className="text-4xl font-bold">{currentRound}</p>
+                    <p className="text-muted-foreground">Раунд</p>
+                </div>
+
+                <div className="flex items-center gap-8">
+                     <button
+                        onClick={() => handleChoice('left')}
+                        disabled={gameState !== 'playing'}
+                        className={cn(
+                            "h-32 w-32 rounded-full border-4 transition-all duration-300 flex items-center justify-center",
+                            gameState === 'playing' ? "cursor-pointer hover:scale-110 border-blue-500 bg-blue-500/20" : "border-muted bg-muted/20",
+                            gameState === 'busted' && winSide === 'left' && "border-green-500 bg-green-500/20 animate-pulse",
+                            gameState === 'busted' && winSide !== 'left' && "border-red-500 bg-red-500/20"
+                        )}
+                    >
+                         <span className="text-5xl font-bold text-blue-400">UP</span>
+                     </button>
+                      <button
+                        onClick={() => handleChoice('right')}
+                        disabled={gameState !== 'playing'}
+                        className={cn(
+                            "h-32 w-32 rounded-full border-4 transition-all duration-300 flex items-center justify-center",
+                            gameState === 'playing' ? "cursor-pointer hover:scale-110 border-red-500 bg-red-500/20" : "border-muted bg-muted/20",
+                            gameState === 'busted' && winSide === 'right' && "border-green-500 bg-green-500/20 animate-pulse",
+                             gameState === 'busted' && winSide !== 'right' && "border-red-500 bg-red-500/20"
+                        )}
+                    >
+                         <span className="text-5xl font-bold text-red-400">X</span>
+                     </button>
+                </div>
+               
+                <div className="text-center">
+                    <p className="text-4xl font-bold">x{currentMultiplier.toFixed(2)}</p>
+                    <p className="text-muted-foreground">Коэфф.</p>
+                </div>
+            </div>
+            
+            <Carousel opts={{ align: "start", dragFree: true }} className="w-full max-w-xl mt-6">
+                <CarouselContent className="-ml-2">
+                    {multipliers.map((multiplier, index) => (
+                    <CarouselItem key={index} className="pl-2 basis-1/5 md:basis-[12%]">
+                        <div className={cn(
+                            "p-2 rounded-md text-center bg-secondary",
+                            currentRound === index + 1 && "border-2 border-primary"
+                        )}>
+                            <p className="font-bold text-sm text-muted-foreground">?</p>
+                            <p className="text-xs text-primary">x{multiplier.toFixed(1)}</p>
+                        </div>
+                    </CarouselItem>
+                    ))}
+                </CarouselContent>
+            </Carousel>
+        </CardContent>
+       </Card>
     </div>
   );
 }
+
+    

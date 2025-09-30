@@ -38,7 +38,7 @@ export const translations = {
     roulette: 'Roulette',
     crash: 'Crash',
     mines: 'Mines',
-    coin_flip: 'Coin Flip',
+    coin_flip: 'UP-X',
     blackjack: 'Blackjack',
     plinko: 'Plinko',
     dice: 'Dice',
@@ -64,7 +64,7 @@ export const translations = {
     crashDescription: 'Watch the multiplier grow, but cash out before it crashes! A game of nerve and timing.',
     minesTitle: 'Mines',
     minesDescription: 'Uncover gems and avoid the mines. The more you find, the bigger the prize!',
-    coinFlipTitle: 'Coin Flip',
+    coinFlipTitle: 'UP-X',
     coinFlipDescription: 'Heads or tails? A simple game of chance with a 50/50 outcome. Bet on the flip!',
     blackjackTitle: 'Blackjack',
     blackjackDescription: 'Get as close to 21 as you can without going over. Beat the dealer and win!',
@@ -200,7 +200,7 @@ export const translations = {
     roulette: 'Рулетка',
     crash: 'Краш',
     mines: 'Мины',
-    coin_flip: 'Монетка',
+    coin_flip: 'UP-X',
     blackjack: 'Блэкджек',
     plinko: 'Плинко',
     dice: 'Кости',
@@ -226,8 +226,8 @@ export const translations = {
     crashDescription: 'Смотрите, как растет множитель, но успейте забрать выигрыш, пока он не обрушился! Игра на выдержку и время.',
     minesTitle: 'Мины',
     minesDescription: 'Находите драгоценные камни и избегайте мин. Чем больше вы найдете, тем больше приз!',
-    coinFlipTitle: 'Подбрасывание монеты',
-    coinFlipDescription: 'Орел или решка? Простая игра на удачу с вероятностью 50/50. Сделайте ставку на результат!',
+    coinFlipTitle: 'UP-X',
+    coinFlipDescription: 'Рискуй и выбирай сторону, чтобы увеличить свой выигрыш!',
     blackjackTitle: 'Блэкджек',
     blackjackDescription: 'Наберите как можно ближе к 21, но не больше. Победите дилера и выиграйте!',
     plinkoTitle: 'Плинко',
@@ -325,3 +325,5 @@ export const translations = {
     winChance: "Шанс выигрыша",
   }
 };
+
+    

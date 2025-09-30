@@ -57,7 +57,7 @@ const games = [
   },
   {
     id: 'coin_flip',
-    titleKey: 'coinFlipTitle',
+    titleKey: 'coin_flip',
     href: '/dashboard/coin-flip',
     imageUrl: 'https://picsum.photos/seed/gp6/400/200',
   },
@@ -166,3 +166,5 @@ export default function HomePage() {
     </div>
   );
 }
+
+    
