@@ -76,7 +76,7 @@ export default function CrashGame() {
   const [phase, setPhase] = useState<GamePhase>('BETTING');
   const [countdown, setCountdown] = useState(10);
   const [multiplier, setMultiplier] = useState(1.0);
-  const [history, setHistory] = useState<number[]>([1.23, 4.56, 2.01, 10.89, 1.01, 3.14, 5.00]);
+  const [history, setHistory] = useState<number[]>([1.23, 4.56, 2.01, 10.89, 1.01, 3.14, 5.00, 1.74, 1.35, 18.40, 6.70, 2.69]);
   const [chartData, setChartData] = useState<{ time: number; value: number }[]>([{ time: 0, value: 1.0 }]);
 
   // Player state
@@ -85,21 +85,26 @@ export default function CrashGame() {
   const [autoCashoutEnabled, setAutoCashoutEnabled] = useState(true);
   const [players, setPlayers] = useState<Player[]>([]);
   const [hasPlacedBet, setHasPlacedBet] = useState(false);
+  const [isCashedOut, setIsCashedOut] = useState(false);
   
   const { balance, setBalance } = useBalance();
   const { toast } = useToast();
 
   const animationFrameRef = useRef<number>();
-  const timeoutRef = useRef<NodeJS.Timeout>();
   
-  const cashedOutRef = useRef(false);
+  // Refs to hold the latest state for use in the animation loop
   const hasPlacedBetRef = useRef(hasPlacedBet);
+  const isCashedOutRef = useRef(isCashedOut);
   const currentBetAmountRef = useRef(betAmount);
   const autoCashoutRef = useRef({ enabled: autoCashoutEnabled, value: autoCashout });
 
   useEffect(() => {
     hasPlacedBetRef.current = hasPlacedBet;
   }, [hasPlacedBet]);
+  
+  useEffect(() => {
+    isCashedOutRef.current = isCashedOut;
+  }, [isCashedOut]);
   
   useEffect(() => {
     currentBetAmountRef.current = betAmount;
@@ -111,9 +116,10 @@ export default function CrashGame() {
 
 
   const handleCashout = useCallback((cashoutMultiplier: number, isAuto: boolean) => {
-    if (!hasPlacedBetRef.current || cashedOutRef.current) return;
+    if (!hasPlacedBetRef.current || isCashedOutRef.current) return;
 
-    cashedOutRef.current = true;
+    setIsCashedOut(true);
+    isCashedOutRef.current = true;
     const bet = currentBetAmountRef.current;
     const wonAmount = bet * cashoutMultiplier;
     setBalance(prev => prev + wonAmount);
@@ -148,24 +154,24 @@ export default function CrashGame() {
           const dataIndex = Math.min(Math.floor(progress * curve.length), curve.length-1)
           setChartData(curve.slice(0, dataIndex + 1));
           
-          if (hasPlacedBetRef.current && !cashedOutRef.current && autoCashoutRef.current.enabled && currentMultiplier >= autoCashoutRef.current.value) {
+          if (hasPlacedBetRef.current && !isCashedOutRef.current && autoCashoutRef.current.enabled && currentMultiplier >= autoCashoutRef.current.value) {
             handleCashout(autoCashoutRef.current.value, true);
           }
           
           if (progress < 1) {
             animationFrameRef.current = requestAnimationFrame(animate);
           } else {
-            setPhase('CRASHED');
             setMultiplier(crashPoint);
 
-            if(hasPlacedBetRef.current && !cashedOutRef.current) {
+            if(hasPlacedBetRef.current && !isCashedOutRef.current) {
                 toast({
                   title: t.crashedTitle,
                   description: `${t.rocketCrashedAt} ${crashPoint.toFixed(2)}x.`,
                   variant: 'destructive',
                 });
             }
-            setHistory(prev => [crashPoint, ...prev].slice(0, 10));
+            setHistory(prev => [crashPoint, ...prev].slice(0, 20));
+            setPhase('CRASHED');
           }
       };
       
@@ -174,40 +180,37 @@ export default function CrashGame() {
 
 
   useEffect(() => {
-      let countdownInterval: NodeJS.Timeout | undefined;
+    let interval: NodeJS.Timeout | undefined;
 
-      if (phase === 'BETTING') {
-          cashedOutRef.current = false;
-          setHasPlacedBet(false);
-          setMultiplier(1.00);
-          setChartData([{ time: 0, value: 1.0 }]);
-          setPlayers(initialPlayers.sort(() => 0.5 - Math.random()).slice(0, Math.floor(Math.random() * 4) + 3));
+    if (phase === 'BETTING') {
+      setIsCashedOut(false);
+      setHasPlacedBet(false);
+      setMultiplier(1.00);
+      setChartData([{ time: 0, value: 1.0 }]);
+      setPlayers(initialPlayers.sort(() => 0.5 - Math.random()).slice(0, Math.floor(Math.random() * 4) + 3));
 
-          let count = 10;
-          setCountdown(count);
-          countdownInterval = setInterval(() => {
-              setCountdown(c => {
-                  if (c - 1 <= 0) {
-                      clearInterval(countdownInterval);
-                      setPhase('RUNNING');
-                      return 0;
-                  }
-                  return c - 1;
-              });
-          }, 1000);
-      } else if (phase === 'RUNNING') {
-          runGame();
-      } else if (phase === 'CRASHED') {
-          timeoutRef.current = setTimeout(() => {
-              setPhase('BETTING');
-          }, 3000);
-      }
+      let count = 10;
+      setCountdown(count);
+      interval = setInterval(() => {
+        count--;
+        setCountdown(count);
+        if (count <= 0) {
+          clearInterval(interval);
+          setPhase('RUNNING');
+        }
+      }, 1000);
+    } else if (phase === 'RUNNING') {
+      runGame();
+    } else if (phase === 'CRASHED') {
+      interval = setTimeout(() => {
+        setPhase('BETTING');
+      }, 3000);
+    }
 
-      return () => {
-        if(animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
-        if(timeoutRef.current) clearTimeout(timeoutRef.current);
-        if(countdownInterval) clearInterval(countdownInterval);
-      }
+    return () => {
+      if (interval) clearInterval(interval);
+      if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+    };
   }, [phase, runGame]);
 
 
@@ -242,7 +245,7 @@ export default function CrashGame() {
   const getMultiplierColor = () => {
     if (phase === 'BETTING') return 'text-muted-foreground';
     if (phase === 'CRASHED') return 'text-destructive';
-    if (cashedOutRef.current) return 'text-green-500';
+    if (isCashedOut) return 'text-green-500';
     return 'text-accent';
   };
 
@@ -251,7 +254,7 @@ export default function CrashGame() {
         if (!hasPlacedBet) {
              return <Button disabled size="lg" className="h-16 w-full text-xl">Ожидание следующего раунда</Button>
         }
-        if (cashedOutRef.current) {
+        if (isCashedOut) {
              return <Button disabled size="lg" className="h-16 w-full text-xl bg-green-500/20 text-green-400">Выигрыш забран!</Button>
         }
         return <Button onClick={() => handleCashout(multiplier, false)} size="lg" className="h-16 w-full text-xl bg-green-500 hover:bg-green-600"><Zap className="mr-2" />{t.cashOut} {multiplier.toFixed(2)}x</Button>;
@@ -352,9 +355,9 @@ export default function CrashGame() {
         <Card className="lg:col-span-2 bg-card/80">
             <CardContent className="p-4">
                  <h3 className="font-bold text-xl mb-4 flex items-center gap-2"><History/> История раундов</h3>
-                 <div className="flex flex-wrap gap-2">
+                 <div className="grid gap-2" style={{gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))'}}>
                     {history.map((h, i) => (
-                         <div key={i} className={cn("p-3 rounded-lg font-bold text-lg", h >= 10 ? 'text-purple-400' : h >= 2 ? 'text-green-400' : 'text-red-400', 'bg-secondary')}>
+                         <div key={i} className={cn("p-3 rounded-lg font-bold text-lg text-center", h >= 10 ? 'text-purple-400' : h >= 2 ? 'text-green-400' : 'text-red-400', 'bg-secondary')}>
                             {h.toFixed(2)}x
                          </div>
                     ))}
