@@ -1,4 +1,3 @@
-
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
@@ -8,6 +7,8 @@ import { LanguageProvider } from '@/contexts/LanguageContext';
 import { BalanceProvider } from '@/contexts/BalanceContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { AuthProvider } from '@/contexts/AuthContext';
+import Sidebar from '@/components/sidebar';
+import Header from '@/components/header';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -32,8 +33,16 @@ export default function RootLayout({
           <LanguageProvider>
             <ThemeProvider>
               <BalanceProvider>
-                  {children}
-                  <Toaster />
+                <div className="flex min-h-screen w-full">
+                    <Sidebar />
+                    <div className="flex flex-1 flex-col">
+                        <Header />
+                        <main className="flex-1 p-4 sm:p-6">
+                            {children}
+                        </main>
+                    </div>
+                </div>
+                <Toaster />
               </BalanceProvider>
             </ThemeProvider>
           </LanguageProvider>
