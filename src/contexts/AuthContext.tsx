@@ -41,10 +41,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error('Sign in error details:', error);
       switch (error.code) {
         case 'auth/user-not-found':
+        case 'auth/wrong-password':
         case 'auth/invalid-credential':
           throw new Error('Неверный email или пароль.');
-        case 'auth/wrong-password':
-          throw new Error('Неверный пароль.');
         case 'auth/configuration-not-found':
           throw new Error('Ошибка конфигурации Firebase. Обратитесь в поддержку.');
         default:
@@ -59,13 +58,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      if(userCredential.user) {
-        await updateProfile(userCredential.user, {
-            displayName: nickname
-        });
-        // Manually update the user state after profile update
-        setUser(auth.currentUser);
-      }
+      await updateProfile(userCredential.user, {
+        displayName: nickname
+      });
+      // onAuthStateChanged will handle setting the user.
     } catch (error: any) {
       switch (error.code) {
         case 'auth/email-already-in-use':
