@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Wallet, Play, Disc } from 'lucide-react';
+import { Wallet, Play } from 'lucide-react';
 import { useBalance } from '@/contexts/BalanceContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { translations } from '@/lib/translations';
@@ -16,11 +16,11 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 
 
 const MULTIPLIERS = {
-    low: [1.2, 1.1, 1.0, 0.9, 0.9, 0.9, 1.0, 1.1, 1.2],
-    medium: [1.5, 1.3, 1.1, 0.8, 0.7, 0.8, 1.1, 1.3, 1.5],
-    high: [5, 2, 1.2, 0.7, 0.5, 0.7, 1.2, 2, 5],
+    low: [1.6, 1.3, 1.1, 1, 0.8, 1, 1.1, 1.3, 1.6],
+    medium: [5, 2, 1.2, 1, 0.7, 1, 1.2, 2, 5],
+    high: [10, 3, 1.5, 1, 0.5, 1, 1.5, 3, 10],
 };
-const NUM_BUCKETS = 9;
+const BUCKET_COUNT = 9;
 
 
 const PlinkoGame = () => {
@@ -37,22 +37,23 @@ const PlinkoGame = () => {
   const { toast } = useToast();
 
   const getBucketColor = (multiplier: number) => {
-    if (multiplier < 1) return 'hsl(var(--destructive) / 0.3)';
-    if (multiplier >= 1 && multiplier < 1.5) return 'hsl(var(--primary) / 0.3)';
-    return 'hsl(var(--accent) / 0.3)';
+    if (multiplier > 2) return 'hsl(var(--destructive) / 0.7)';
+    if (multiplier > 1.2) return 'hsl(var(--accent) / 0.7)';
+    if (multiplier >= 1) return 'hsl(var(--primary) / 0.5)';
+    return 'hsl(var(--muted-foreground) / 0.5)';
   }
 
   const drawPlinko = useCallback((ctx: CanvasRenderingContext2D, width: number, height: number) => {
     ctx.clearRect(0, 0, width, height);
     
-    // Draw Pegs (Rectangular grid)
     const pegRadius = 5;
-    const verticalSpacing = height / (rows + 3);
-    const numPegsInRow = NUM_BUCKETS + 1;
-    const horizontalSpacing = width / (numPegsInRow);
+    const verticalSpacing = height / (rows + 4);
     
+    // Draw Pegs (Pyramid shape)
     for (let row = 0; row < rows; row++) {
-      for (let col = 0; col < numPegsInRow -1; col++) {
+      const numPegsInRow = row + 2;
+      const horizontalSpacing = width / (numPegsInRow + 1);
+      for (let col = 0; col < numPegsInRow; col++) {
         const x = horizontalSpacing * (col + 1);
         const y = verticalSpacing * (row + 1.5);
         ctx.beginPath();
@@ -64,15 +65,15 @@ const PlinkoGame = () => {
     
     // Draw Multiplier Buckets
     const multipliers = MULTIPLIERS[risk];
-    const bucketWidth = width / multipliers.length;
-    for (let i = 0; i < multipliers.length; i++) {
+    const bucketWidth = width / BUCKET_COUNT;
+    for (let i = 0; i < BUCKET_COUNT; i++) {
         const x = i * bucketWidth;
         const y = height - verticalSpacing;
         ctx.fillStyle = getBucketColor(multipliers[i]);
         ctx.fillRect(x, y, bucketWidth, verticalSpacing);
         ctx.strokeStyle = 'hsl(var(--border))';
         ctx.strokeRect(x, y, bucketWidth, verticalSpacing);
-        ctx.fillStyle = 'hsl(var(--foreground))';
+        ctx.fillStyle = 'hsl(var(--card-foreground))';
         ctx.font = 'bold 14px sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText(`${multipliers[i]}x`, x + bucketWidth / 2, y + verticalSpacing / 1.5);
@@ -108,20 +109,47 @@ const PlinkoGame = () => {
     if (!ctx) return;
 
     const { width, height } = canvas;
-    const verticalSpacing = height / (rows + 3);
+    const verticalSpacing = height / (rows + 4);
     const ballRadius = 7;
     let x = width / 2 + (Math.random() - 0.5) * 20;
     let y = ballRadius + 5;
+    let vx = 0;
     let vy = 0;
     const gravity = 0.2;
-    const bounceFactor = 0.6;
+    let path = [x]; // Path of horizontal positions
+
+    // Simulate path
+    for(let row = 0; row < rows; row++) {
+        const direction = Math.random() < 0.5 ? -1 : 1;
+        const numPegsInRow = row + 2;
+        const horizontalSpacing = width / (numPegsInRow + 1);
+        path.push(path[path.length - 1] + (direction * horizontalSpacing / 2));
+    }
     
+    let step = 0;
+
     const animate = () => {
       drawPlinko(ctx, width, height); 
       
-      // Draw Ball
-      y += vy;
-      vy += gravity;
+      const targetY = verticalSpacing * (step + 1.5);
+
+      if (y < targetY) {
+         vy += gravity;
+         y += vy;
+         
+         // Interpolate horizontal movement
+         if (step < path.length - 1) {
+            const startX = path[step];
+            const endX = path[step+1];
+            const startY = verticalSpacing * (step + 0.5);
+            const progress = (y - startY) / (targetY - startY);
+            x = startX + (endX - startX) * Math.sin(Math.PI * progress / 2); // Ease out
+         }
+      } else {
+        vy = 0;
+        step++;
+      }
+
 
       ctx.beginPath();
       ctx.arc(x, y, ballRadius, 0, Math.PI * 2);
@@ -133,36 +161,13 @@ const PlinkoGame = () => {
       ctx.shadowBlur = 0;
 
 
-      // Collision with pegs
-      const currentRow = Math.floor((y - verticalSpacing / 2) / verticalSpacing);
-      if(currentRow >= 0 && currentRow < rows) {
-          const numPegsInRow = NUM_BUCKETS;
-          const horizontalSpacing = width / (numPegsInRow + 1);
-          
-          for (let col = 0; col < numPegsInRow; col++) {
-              const pegX = horizontalSpacing * (col + 1);
-              const pegY = verticalSpacing * (currentRow + 1.5);
-              const dx = x - pegX;
-              const dy = y - pegY;
-              const distance = Math.sqrt(dx * dx + dy * dy);
-              if (distance < ballRadius + 5) { // 5 is peg radius
-                  const direction = Math.random() < 0.5 ? -1 : 1;
-                  x += direction * (horizontalSpacing / 3) * (Math.random() + 0.5); // Randomize bounce
-                  vy *= -bounceFactor; // Bounce up slightly
-                  y += 5;
-                  break;
-              }
-          }
-      }
-
-
-      if (y < height - verticalSpacing - ballRadius) {
+      if (y < height - verticalSpacing - ballRadius && step <= rows) {
         requestAnimationFrame(animate);
       } else {
         // Landed in a bucket
         const multipliers = MULTIPLIERS[risk];
-        const finalBucketIndex = Math.floor(x / (width / multipliers.length));
-        const finalBucket = Math.max(0, Math.min(finalBucketIndex, multipliers.length - 1));
+        const finalBucketIndex = Math.floor((x / width) * BUCKET_COUNT);
+        const finalBucket = Math.max(0, Math.min(finalBucketIndex, BUCKET_COUNT - 1));
         
         const multiplier = multipliers[finalBucket];
         const winnings = betAmount * multiplier;
@@ -174,7 +179,7 @@ const PlinkoGame = () => {
         });
         
         // Final bucket animation
-        const bucketWidth = width / multipliers.length;
+        const bucketWidth = width / BUCKET_COUNT;
         const bucketX = finalBucket * bucketWidth;
         ctx.fillStyle = getBucketColor(multiplier);
         ctx.globalAlpha = 0.5;
@@ -235,5 +240,3 @@ const PlinkoGame = () => {
 };
 
 export default PlinkoGame;
-
-    
