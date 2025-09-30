@@ -85,16 +85,24 @@ export default function CrashGame() {
   const [multiplier, setMultiplier] = useState(1.0);
   const [history, setHistory] = useState<number[]>([1.23, 4.56, 2.01, 10.89, 1.01, 3.14, 5.00, 1.74, 1.35, 18.40, 6.70, 2.69]);
   const [chartData, setChartData] = useState<{ time: number; value: number }[]>([{ time: 0, value: 1.0 }]);
+  const [players, setPlayers] = useState<Player[]>([]);
 
   // Player state
   const [betAmount, setBetAmount] = useState(10);
   const [autoCashout, setAutoCashout] = useState(2.0);
   const [autoCashoutEnabled, setAutoCashoutEnabled] = useState(true);
-  const [hasPlacedBet, setHasPlacedBet] = useState(false);
-  const [isCashedOut, setIsCashedOut] = useState(false);
   
   const { balance, setBalance } = useBalance();
   const { toast } = useToast();
+
+  // Refs for stable values within game loop
+  const playerStateRef = useRef({
+      hasPlacedBet: false,
+      isCashedOut: false,
+      betAmount: 10,
+      autoCashoutEnabled: true,
+      autoCashout: 2.0,
+  });
 
   const gameLogicRef = useRef({
       animationFrameId: 0,
@@ -104,38 +112,31 @@ export default function CrashGame() {
       gameDuration: 0,
   });
 
-  const playerStateRef = useRef({
-      hasPlacedBet,
-      isCashedOut,
-      betAmount,
-      autoCashoutEnabled,
-      autoCashout,
-  });
-  
-  // Keep the ref updated with the latest state
+  // Update refs when state changes
   useEffect(() => {
       playerStateRef.current = {
-          hasPlacedBet,
-          isCashedOut,
+          hasPlacedBet: playerStateRef.current.hasPlacedBet,
+          isCashedOut: playerStateRef.current.isCashedOut,
           betAmount,
           autoCashoutEnabled,
           autoCashout,
       };
-  }, [hasPlacedBet, isCashedOut, betAmount, autoCashoutEnabled, autoCashout]);
+  }, [betAmount, autoCashoutEnabled, autoCashout]);
   
-  const handleCashout = useCallback((cashoutMultiplier: number, isAuto: boolean) => {
-    if (!playerStateRef.current.hasPlacedBet || isCashedOut) return;
+  const handleCashout = useCallback(() => {
+    if (!playerStateRef.current.hasPlacedBet || playerStateRef.current.isCashedOut) return;
 
-    setIsCashedOut(true); // This now correctly updates the state
+    playerStateRef.current.isCashedOut = true;
+    const cashoutMultiplier = multiplier;
     const bet = playerStateRef.current.betAmount;
     const wonAmount = bet * cashoutMultiplier;
     setBalance(prev => prev + wonAmount);
 
     toast({
-        title: isAuto ? t.autoCashedOut : t.cashedOut,
+        title: t.cashedOut,
         description: `${t.youWonAmount} ${wonAmount.toFixed(2)} ${t.creditsAt} ${cashoutMultiplier.toFixed(2)}x!`,
     });
-  }, [setBalance, t, toast, isCashedOut]); // Add isCashedOut to dependencies
+  }, [setBalance, t, toast, multiplier]);
 
 
   const runGame = useCallback(() => {
@@ -164,7 +165,13 @@ export default function CrashGame() {
           setChartData(curve.slice(0, dataIndex + 1));
           
           if (playerStateRef.current.hasPlacedBet && !playerStateRef.current.isCashedOut && playerStateRef.current.autoCashoutEnabled && currentMultiplier >= playerStateRef.current.autoCashout) {
-            handleCashout(playerStateRef.current.autoCashout, true);
+            playerStateRef.current.isCashedOut = true; // Mark as cashed out
+            const wonAmount = playerStateRef.current.betAmount * playerStateRef.current.autoCashout;
+            setBalance(prev => prev + wonAmount);
+            toast({
+                title: t.autoCashedOut,
+                description: `${t.youWonAmount} ${wonAmount.toFixed(2)} ${t.creditsAt} ${playerStateRef.current.autoCashout.toFixed(2)}x!`,
+            });
           }
           
           if (progress < 1) {
@@ -176,14 +183,14 @@ export default function CrashGame() {
       };
       
       gameLogicRef.current.animationFrameId = requestAnimationFrame(animate);
-  }, [handleCashout]);
+  }, [setBalance, t, toast]);
   
   useEffect(() => {
     let interval: NodeJS.Timeout | undefined;
 
     if (phase === 'BETTING') {
-      setIsCashedOut(false);
-      setHasPlacedBet(false);
+      playerStateRef.current.isCashedOut = false;
+      playerStateRef.current.hasPlacedBet = false;
       setMultiplier(1.00);
       setChartData([{ time: 0, value: 1.0 }]);
       setPlayers(initialPlayers.sort(() => 0.5 - Math.random()).slice(0, Math.floor(Math.random() * 4) + 3));
@@ -202,6 +209,7 @@ export default function CrashGame() {
     } else if (phase === 'RUNNING') {
       runGame();
     } else if (phase === 'CRASHED') {
+      cancelAnimationFrame(gameLogicRef.current.animationFrameId);
       const crashPoint = gameLogicRef.current.crashPoint;
       if (playerStateRef.current.hasPlacedBet && !playerStateRef.current.isCashedOut) {
         toast({
@@ -225,7 +233,7 @@ export default function CrashGame() {
 
 
   const placeBet = () => {
-      if (hasPlacedBet) return;
+      if (playerStateRef.current.hasPlacedBet) return;
       if (betAmount <= 0) {
         toast({ title: t.invalidBet, description: t.betMustBePositive, variant: 'destructive' });
         return;
@@ -235,12 +243,12 @@ export default function CrashGame() {
         return;
       }
       setBalance(prev => prev - betAmount);
-      setHasPlacedBet(true);
+      playerStateRef.current.hasPlacedBet = true;
       toast({title: "Ставка принята!", description: `Ваша ставка ${betAmount} ₽ будет сыграна в следующем раунде.`});
   }
   
   const quickBet = (action: 'half' | 'double' | 'min' | 'max') => {
-    if (hasPlacedBet) return;
+    if (playerStateRef.current.hasPlacedBet) return;
     if (action === 'min') {
         setBetAmount(1);
     } else if (action === 'max') {
@@ -255,22 +263,23 @@ export default function CrashGame() {
   const getMultiplierColor = () => {
     if (phase === 'BETTING') return 'text-muted-foreground';
     if (phase === 'CRASHED') return 'text-destructive';
-    if (isCashedOut) return 'text-green-500';
+    if (playerStateRef.current.isCashedOut) return 'text-green-500';
     return 'text-accent';
   };
-
+  
   const MainButton = () => {
     if (phase === 'RUNNING') {
-        if (!hasPlacedBet) {
+        if (!playerStateRef.current.hasPlacedBet) {
              return <Button disabled size="lg" className="h-16 w-full text-xl">Ожидание следующего раунда</Button>
         }
-        if (isCashedOut) {
+        if (playerStateRef.current.isCashedOut) {
              return <Button disabled size="lg" className="h-16 w-full text-xl bg-green-500/20 text-green-400">Выигрыш забран!</Button>
         }
-        return <Button onClick={() => handleCashout(multiplier, false)} size="lg" className="h-16 w-full text-xl bg-green-500 hover:bg-green-600"><Zap className="mr-2" />{t.cashOut} {multiplier.toFixed(2)}x</Button>;
+        return <Button onClick={handleCashout} size="lg" className="h-16 w-full text-xl bg-green-500 hover:bg-green-600"><Zap className="mr-2" />{t.cashOut} {multiplier.toFixed(2)}x</Button>;
     }
     
-    if (hasPlacedBet) {
+    // In betting phase
+    if (playerStateRef.current.hasPlacedBet) {
         return <Button disabled size="lg" className="h-16 w-full text-xl bg-green-500/20 text-green-400">Ставка сделана</Button>;
     }
 
@@ -340,21 +349,21 @@ export default function CrashGame() {
                     <div className="grid grid-cols-2 gap-6">
                          <div className="grid gap-2">
                             <Label htmlFor="bet-amount" className="flex items-center gap-2"><Wallet />{t.betAmount}</Label>
-                            <Input id="bet-amount" type="number" value={betAmount} onChange={(e) => setBetAmount(parseFloat(e.target.value) || 0)} disabled={hasPlacedBet} className="h-12 text-lg"/>
+                            <Input id="bet-amount" type="number" value={betAmount} onChange={(e) => setBetAmount(parseFloat(e.target.value) || 0)} disabled={playerStateRef.current.hasPlacedBet} className="h-12 text-lg"/>
                         </div>
                          <div className="grid gap-2">
                             <Label htmlFor="auto-cashout" className="flex items-center gap-2"><Target />{t.autoCashOut}</Label>
                             <div className='flex items-center gap-2'>
-                                <Input id="auto-cashout" type="number" value={autoCashout} onChange={(e) => setAutoCashout(parseFloat(e.target.value) || 0)} placeholder="2.0" disabled={hasPlacedBet} className="h-12 text-lg" />
-                                <Switch checked={autoCashoutEnabled} onCheckedChange={setAutoCashoutEnabled} disabled={hasPlacedBet} />
+                                <Input id="auto-cashout" type="number" value={autoCashout} onChange={(e) => setAutoCashout(parseFloat(e.target.value) || 0)} placeholder="2.0" disabled={playerStateRef.current.hasPlacedBet} className="h-12 text-lg" />
+                                <Switch checked={autoCashoutEnabled} onCheckedChange={setAutoCashoutEnabled} disabled={playerStateRef.current.hasPlacedBet} />
                             </div>
                         </div>
                     </div>
                      <div className="grid grid-cols-4 gap-2">
-                        <Button variant="secondary" onClick={() => quickBet('min')} disabled={hasPlacedBet}>Мин.</Button>
-                        <Button variant="secondary" onClick={() => quickBet('half')} disabled={hasPlacedBet}>1/2</Button>
-                        <Button variant="secondary" onClick={() => quickBet('double')} disabled={hasPlacedBet}>x2</Button>
-                        <Button variant="secondary" onClick={() => quickBet('max')} disabled={hasPlacedBet}>На все</Button>
+                        <Button variant="secondary" onClick={() => quickBet('min')} disabled={playerStateRef.current.hasPlacedBet}>Мин.</Button>
+                        <Button variant="secondary" onClick={() => quickBet('half')} disabled={playerStateRef.current.hasPlacedBet}>1/2</Button>
+                        <Button variant="secondary" onClick={() => quickBet('double')} disabled={playerStateRef.current.hasPlacedBet}>x2</Button>
+                        <Button variant="secondary" onClick={() => quickBet('max')} disabled={playerStateRef.current.hasPlacedBet}>На все</Button>
                     </div>
                     <MainButton />
                 </CardContent>
@@ -378,5 +387,3 @@ export default function CrashGame() {
     </div>
   );
 }
-
-    
