@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -94,6 +95,7 @@ export default function CrashGame() {
   const gameStartTime = useRef<number>();
   const fullCurveData = useRef<{ time: number; value: number }[]>([]);
   const crashPoint = useRef<number>(1.0);
+  const cashedOutRef = useRef(cashedOut);
 
   const { balance, setBalance } = useBalance();
   const { toast } = useToast();
@@ -101,6 +103,10 @@ export default function CrashGame() {
   useEffect(() => {
     phaseRef.current = phase;
   }, [phase]);
+
+  useEffect(() => {
+    cashedOutRef.current = cashedOut;
+  }, [cashedOut]);
 
 
   const startBettingPhase = useCallback(() => {
@@ -147,18 +153,19 @@ export default function CrashGame() {
       toast({title: "Ставка принята!", description: `Ваша ставка ${betAmount} ₽ будет сыграна в следующем раунде.`});
   }
 
-  const handleCashout = useCallback((cashoutMultiplier: number) => {
-      if (!hasPlacedBet || cashedOut) return;
+  const handleCashout = useCallback((cashoutMultiplier: number, isAuto: boolean) => {
+    if (!hasPlacedBet || cashedOutRef.current) return;
 
-      const wonAmount = betAmount * cashoutMultiplier;
-      setBalance(prev => prev + wonAmount);
-      setCashedOut(true);
+    const wonAmount = betAmount * cashoutMultiplier;
+    setBalance(prev => prev + wonAmount);
+    setCashedOut(true);
 
-      toast({
-        title: cashoutMultiplier === autoCashout && autoCashoutEnabled ? t.autoCashedOut : t.cashedOut,
+    toast({
+        title: isAuto ? t.autoCashedOut : t.cashedOut,
         description: `${t.youWonAmount} ${wonAmount.toFixed(2)} ${t.creditsAt} ${cashoutMultiplier.toFixed(2)}x!`,
-      });
-  }, [betAmount, autoCashout, autoCashoutEnabled, hasPlacedBet, cashedOut, setBalance, toast, t]);
+    });
+}, [betAmount, hasPlacedBet, setBalance, toast, t]);
+
 
   const runAnimation = useCallback(() => {
     gameStartTime.current = performance.now();
@@ -186,8 +193,8 @@ export default function CrashGame() {
       const dataIndex = Math.min(Math.floor((elapsedTime / finalTime) * fullCurveData.current.length), fullCurveData.current.length-1)
       setChartData(fullCurveData.current.slice(0, dataIndex + 1));
       
-      if (hasPlacedBet && !cashedOut && autoCashoutEnabled && currentMultiplier >= autoCashout) {
-        handleCashout(autoCashout);
+      if (hasPlacedBet && !cashedOutRef.current && autoCashoutEnabled && currentMultiplier >= autoCashout) {
+        handleCashout(autoCashout, true);
       }
       
       if (currentMultiplier < crashPoint.current) {
@@ -196,7 +203,7 @@ export default function CrashGame() {
         setMultiplier(crashPoint.current);
         setPhase('CRASHED');
         
-        if(hasPlacedBet && !cashedOut) {
+        if(hasPlacedBet && !cashedOutRef.current) {
             toast({
               title: t.crashedTitle,
               description: `${t.rocketCrashedAt} ${crashPoint.current.toFixed(2)}x.`,
@@ -210,7 +217,7 @@ export default function CrashGame() {
       }
     };
     animationFrameId.current = requestAnimationFrame(animate);
-  }, [autoCashout, handleCashout, toast, t, hasPlacedBet, cashedOut, autoCashoutEnabled, startBettingPhase]);
+  }, [autoCashout, handleCashout, toast, t, hasPlacedBet, autoCashoutEnabled, startBettingPhase]);
 
 
   const startGame = useCallback(async () => {
@@ -259,7 +266,7 @@ export default function CrashGame() {
         if (cashedOut) {
              return <Button disabled size="lg" className="h-16 w-full text-xl bg-green-500/20 text-green-400">Выигрыш забран!</Button>
         }
-        return <Button onClick={() => handleCashout(multiplier)} size="lg" className="h-16 w-full text-xl bg-green-500 hover:bg-green-600"><Zap className="mr-2" />{t.cashOut} {multiplier.toFixed(2)}x</Button>;
+        return <Button onClick={() => handleCashout(multiplier, false)} size="lg" className="h-16 w-full text-xl bg-green-500 hover:bg-green-600"><Zap className="mr-2" />{t.cashOut} {multiplier.toFixed(2)}x</Button>;
     }
     
     if (hasPlacedBet) {
@@ -283,9 +290,9 @@ export default function CrashGame() {
                                     <AvatarImage src={p.avatar} />
                                     <AvatarFallback>{p.name.charAt(0)}</AvatarFallback>
                                 </Avatar>
-                                <span>{p.name}</span>
+                                <span className='truncate'>{p.name}</span>
                              </div>
-                              <div className="text-right">
+                              <div className="text-right flex-shrink-0">
                                 <div className="font-bold">{p.bet} ₽</div>
                                 {p.cashedOutAt && <div className="text-green-400">{p.cashedOutAt.toFixed(2)}x</div>}
                               </div>
@@ -370,3 +377,5 @@ export default function CrashGame() {
     </div>
   );
 }
+
+    
