@@ -85,7 +85,7 @@ export default function Sidebar() {
     return (
         <aside className="w-20 bg-card flex flex-col items-center py-4 px-2">
              <Link href="/" className="mb-8">
-                <Logo className="text-sm text-center" />
+                <Logo className="text-base text-center" />
                </Link>
             <TooltipProvider>
                 <nav className="flex flex-col items-center gap-3">
@@ -130,5 +130,3 @@ export default function Sidebar() {
         </aside>
     )
 }
-
-    
