@@ -48,7 +48,7 @@ const generateCurveData = (crashPoint: number) => {
 
     for (let i = 0; i <= steps; i++) {
         const t = (i / steps);
-        const multiplier = Math.pow(crashPoint, t);
+        const multiplier = 1 + (crashPoint - 1) * Math.pow(t, 2); // Use a power curve for smoother start
         data.push({ time: t, value: multiplier });
     }
     if (data[data.length - 1].value < crashPoint) {
@@ -89,53 +89,47 @@ export default function CrashGame() {
   const { balance, setBalance } = useBalance();
   const { toast } = useToast();
 
-  // Refs for state that changes inside loops/intervals
-  const gameLoopRef = useRef<NodeJS.Timeout | null>(null);
-  const countdownRef = useRef<NodeJS.Timer | null>(null);
+  const animationFrameRef = useRef<number>();
+  const timeoutRef = useRef<NodeJS.Timeout>();
+  
+  // Refs for state that needs to be accessed inside callbacks without causing re-renders
   const cashedOutRef = useRef(false);
   const hasPlacedBetRef = useRef(hasPlacedBet);
-  
+  const currentBetAmountRef = useRef(betAmount);
+  const autoCashoutRef = useRef({ enabled: autoCashoutEnabled, value: autoCashout });
+
   useEffect(() => {
     hasPlacedBetRef.current = hasPlacedBet;
   }, [hasPlacedBet]);
+  
+  useEffect(() => {
+    currentBetAmountRef.current = betAmount;
+  }, [betAmount]);
+  
+  useEffect(() => {
+    autoCashoutRef.current = { enabled: autoCashoutEnabled, value: autoCashout };
+  }, [autoCashoutEnabled, autoCashout]);
 
 
   const handleCashout = useCallback((cashoutMultiplier: number, isAuto: boolean) => {
-    // Check refs for the most current state
     if (!hasPlacedBetRef.current || cashedOutRef.current) return;
 
-    cashedOutRef.current = true; // Set ref immediately
-    const wonAmount = betAmount * cashoutMultiplier;
+    cashedOutRef.current = true;
+    const bet = currentBetAmountRef.current;
+    const wonAmount = bet * cashoutMultiplier;
     setBalance(prev => prev + wonAmount);
 
     toast({
         title: isAuto ? t.autoCashedOut : t.cashedOut,
         description: `${t.youWonAmount} ${wonAmount.toFixed(2)} ${t.creditsAt} ${cashoutMultiplier.toFixed(2)}x!`,
     });
-  }, [betAmount, setBalance, t, toast]);
+  }, [setBalance, t, toast]);
 
 
-  const endRound = useCallback((finalMultiplier: number) => {
-    setPhase('CRASHED');
-    setMultiplier(finalMultiplier);
-
-    if(hasPlacedBetRef.current && !cashedOutRef.current) {
-        toast({
-          title: t.crashedTitle,
-          description: `${t.rocketCrashedAt} ${finalMultiplier.toFixed(2)}x.`,
-          variant: 'destructive',
-        });
-    }
-    
-    setHistory(prev => [finalMultiplier, ...prev].slice(0, 10));
-
-    if (gameLoopRef.current) clearTimeout(gameLoopRef.current);
-    gameLoopRef.current = setTimeout(() => {
-        setPhase('BETTING');
-    }, 3000);
-  }, [toast, t]);
-
-  const runGame = useCallback((crashPoint: number, curve: {time: number, value: number}[]) => {
+  const runGame = useCallback(() => {
+      const seed = Date.now() + Math.random();
+      const crashPoint = generateCrashPoint(seed);
+      const curve = generateCurveData(crashPoint);
       const startTime = Date.now();
       const gameDuration = Math.log(crashPoint) * 8 * 1000;
 
@@ -155,58 +149,69 @@ export default function CrashGame() {
           const dataIndex = Math.min(Math.floor(progress * curve.length), curve.length-1)
           setChartData(curve.slice(0, dataIndex + 1));
           
-          if (hasPlacedBetRef.current && !cashedOutRef.current && autoCashoutEnabled && currentMultiplier >= autoCashout) {
-            handleCashout(autoCashout, true);
+          if (hasPlacedBetRef.current && !cashedOutRef.current && autoCashoutRef.current.enabled && currentMultiplier >= autoCashoutRef.current.value) {
+            handleCashout(autoCashoutRef.current.value, true);
           }
           
           if (progress < 1) {
-            requestAnimationFrame(animate);
+            animationFrameRef.current = requestAnimationFrame(animate);
           } else {
-            endRound(crashPoint);
+            setPhase('CRASHED');
+            setMultiplier(crashPoint);
+
+            if(hasPlacedBetRef.current && !cashedOutRef.current) {
+                toast({
+                  title: t.crashedTitle,
+                  description: `${t.rocketCrashedAt} ${crashPoint.toFixed(2)}x.`,
+                  variant: 'destructive',
+                });
+            }
+            setHistory(prev => [crashPoint, ...prev].slice(0, 10));
           }
       };
-
-      requestAnimationFrame(animate);
-
-  }, [autoCashout, autoCashoutEnabled, handleCashout, endRound]);
+      
+      animationFrameRef.current = requestAnimationFrame(animate);
+  }, [handleCashout, toast, t]);
 
 
   useEffect(() => {
-    if (phase === 'BETTING') {
-      if (countdownRef.current) clearInterval(countdownRef.current);
-      
-      cashedOutRef.current = false;
-      hasPlacedBetRef.current = false;
-      setHasPlacedBet(false);
-      setMultiplier(1.00);
-      setChartData([{ time: 0, value: 1.0 }]);
-      setPlayers(initialPlayers.sort(() => 0.5 - Math.random()).slice(0, Math.floor(Math.random() * 4) + 3));
+      if (phase === 'BETTING') {
+          // Reset for new round
+          cashedOutRef.current = false;
+          setHasPlacedBet(false);
+          setMultiplier(1.00);
+          setChartData([{ time: 0, value: 1.0 }]);
+          setPlayers(initialPlayers.sort(() => 0.5 - Math.random()).slice(0, Math.floor(Math.random() * 4) + 3));
 
-      let count = 10;
-      setCountdown(count);
-      countdownRef.current = setInterval(() => {
-          count--;
+          let count = 10;
           setCountdown(count);
-          if (count <= 0) {
-              clearInterval(countdownRef.current!);
-              setPhase('RUNNING');
-          }
-      }, 1000);
-    } else if (phase === 'RUNNING') {
-        const seed = Date.now() + Math.random();
-        const crashPoint = generateCrashPoint(seed);
-        const curve = generateCurveData(crashPoint);
-        runGame(crashPoint, curve);
-    }
-    
-    return () => {
-      if (countdownRef.current) clearInterval(countdownRef.current);
-      if (gameLoopRef.current) clearTimeout(gameLoopRef.current);
-    }
+          const countdownInterval = setInterval(() => {
+              count--;
+              setCountdown(c => c-1);
+              if (count <= 0) {
+                  clearInterval(countdownInterval);
+                  setPhase('RUNNING');
+              }
+          }, 1000);
+          return () => clearInterval(countdownInterval);
+      } else if (phase === 'RUNNING') {
+          runGame();
+      } else if (phase === 'CRASHED') {
+          // After crash, wait 3 seconds then go back to betting phase
+          timeoutRef.current = setTimeout(() => {
+              setPhase('BETTING');
+          }, 3000);
+      }
+
+      return () => {
+        if(animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+        if(timeoutRef.current) clearTimeout(timeoutRef.current);
+      }
   }, [phase, runGame]);
 
 
   const placeBet = () => {
+      if (hasPlacedBet) return;
       if (betAmount <= 0) {
         toast({ title: t.invalidBet, description: t.betMustBePositive, variant: 'destructive' });
         return;
@@ -217,11 +222,11 @@ export default function CrashGame() {
       }
       setBalance(prev => prev - betAmount);
       setHasPlacedBet(true);
-      hasPlacedBetRef.current = true;
       toast({title: "Ставка принята!", description: `Ваша ставка ${betAmount} ₽ будет сыграна в следующем раунде.`});
   }
   
   const quickBet = (action: 'half' | 'double' | 'min' | 'max') => {
+    if (hasPlacedBet) return;
     if (action === 'min') {
         setBetAmount(1);
     } else if (action === 'max') {
@@ -293,7 +298,7 @@ export default function CrashGame() {
                         <>
                             <p className="text-2xl font-semibold text-muted-foreground">Раунд начнется через</p>
                             <p className="font-headline font-bold text-7xl text-foreground drop-shadow-lg">
-                                {countdown.toFixed(1)}
+                                {countdown.toFixed(0)}
                             </p>
                         </>
                     ) : (
@@ -321,7 +326,7 @@ export default function CrashGame() {
                     <div className="grid grid-cols-2 gap-6">
                          <div className="grid gap-2">
                             <Label htmlFor="bet-amount" className="flex items-center gap-2"><Wallet />{t.betAmount}</Label>
-                            <Input id="bet-amount" type="number" value={betAmount} onChange={(e) => setBetAmount(parseFloat(e.target.value))} disabled={hasPlacedBet} className="h-12 text-lg"/>
+                            <Input id="bet-amount" type="number" value={betAmount} onChange={(e) => setBetAmount(parseFloat(e.target.value) || 0)} disabled={hasPlacedBet} className="h-12 text-lg"/>
                         </div>
                          <div className="grid gap-2">
                             <Label htmlFor="auto-cashout" className="flex items-center gap-2"><Target />{t.autoCashOut}</Label>
@@ -359,5 +364,3 @@ export default function CrashGame() {
     </div>
   );
 }
-
-    
