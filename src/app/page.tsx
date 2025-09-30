@@ -1,3 +1,4 @@
+
 "use client";
 
 import Image from 'next/image';
@@ -59,6 +60,12 @@ const games = [
     titleKey: 'coinFlipTitle',
     href: '/dashboard/coin-flip',
     imageUrl: 'https://picsum.photos/seed/gp6/400/200',
+  },
+  {
+    id: 'dice',
+    titleKey: 'diceTitle',
+    href: '/dashboard/dice',
+    imageUrl: 'https://picsum.photos/seed/gp7/400/200',
   },
 ];
 

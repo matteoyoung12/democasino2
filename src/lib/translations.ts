@@ -41,6 +41,7 @@ export const translations = {
     coin_flip: 'Coin Flip',
     blackjack: 'Blackjack',
     plinko: 'Plinko',
+    dice: 'Dice',
 
     // Landing page
     heroSlogan: 'Experience the thrill of our exclusive online casino. Fair play, big wins, and endless entertainment await.',
@@ -69,7 +70,9 @@ export const translations = {
     blackjackDescription: 'Get as close to 21 as you can without going over. Beat the dealer and win!',
     plinkoTitle: 'Plinko',
     plinkoDescription: 'Drop the ball and watch it bounce to a multiplier. Simple, fun, and exciting!',
-    
+    diceTitle: 'Dice',
+    diceDescription: 'Bet over or under a number. The riskier the bet, the bigger the payout!',
+
     // Blackjack
     dealersHand: "Dealer's Hand",
     yourHand: "Your Hand",
@@ -141,7 +144,7 @@ export const translations = {
     tryAgain: "Try Again!",
     noWin: "No win this time.",
     freeSpinsRemaining: "Free Spins Remaining",
-buyBonus: "Buy Bonus",
+    buyBonus: "Buy Bonus",
     spinning: "Spinning...",
     stopAuto: "Stop Auto",
     autoPlay: "Auto Play",
@@ -154,6 +157,10 @@ buyBonus: "Buy Bonus",
     medium: "Medium",
     high: "High",
     rows: "Rows",
+    
+    // Dice
+    multiplier: "Multiplier",
+    winChance: "Win Chance",
   },
   ru: {
     // General
@@ -196,6 +203,7 @@ buyBonus: "Buy Bonus",
     coin_flip: 'Монетка',
     blackjack: 'Блэкджек',
     plinko: 'Плинко',
+    dice: 'Кости',
 
     // Landing page
     heroSlogan: 'Испытайте азарт нашего эксклюзивного онлайн-казино. Честная игра, большие выигрыши и бесконечное развлечение ждут вас.',
@@ -224,6 +232,8 @@ buyBonus: "Buy Bonus",
     blackjackDescription: 'Наберите как можно ближе к 21, но не больше. Победите дилера и выиграйте!',
     plinkoTitle: 'Плинко',
     plinkoDescription: 'Бросайте шарик и смотрите, как он отскакивает к множителю. Просто, весело и увлекательно!',
+    diceTitle: 'Кости',
+    diceDescription: 'Ставьте на больше или меньше. Чем рискованнее ставка, тем больше выплата!',
 
     // Blackjack
     dealersHand: "Рука дилера",
@@ -276,7 +286,7 @@ buyBonus: "Buy Bonus",
     // Roulette
     even: 'Четное',
     red: 'Красное',
-black: 'Черное',
+    black: 'Черное',
     odd: 'Нечетное',
     noBetsPlaced: 'Ставки не сделаны',
     placeBetBeforeSpin: 'Пожалуйста, сделайте ставку перед вращением.',
@@ -309,5 +319,9 @@ black: 'Черное',
     medium: "Средний",
     high: "Высокий",
     rows: "Ряды",
+    
+    // Dice
+    multiplier: "Множитель",
+    winChance: "Шанс выигрыша",
   }
 };

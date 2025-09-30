@@ -18,7 +18,8 @@ import {
   Gem,
   Spade,
   Disc,
-  Trophy
+  Trophy,
+  Dice5
 } from "lucide-react";
 import Logo from "@/components/logo";
 import {
@@ -60,6 +61,7 @@ const gameItems = [
   { href: "/dashboard/mines", labelKey: "mines", icon: Bomb },
   { href: "/dashboard/coin-flip", labelKey: "coin_flip", icon: Coins },
   { href: "/dashboard/blackjack", labelKey: "blackjack", icon: Spade },
+  { href: "/dashboard/dice", labelKey: "dice", icon: Dice5 },
 ];
 
 const mainNavItems = [

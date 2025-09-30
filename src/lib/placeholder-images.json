@@ -41,6 +41,12 @@
       "description": "Image for the blackjack game card",
       "imageUrl": "https://images.unsplash.com/photo-1541447232314-5d27f878dee7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxibGFja2phY2slMjBjYXJkc3xlbnwwfHx8fDE3NTkyOTkwMTB8MA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "blackjack cards"
+    },
+    {
+      "id": "dice-card",
+      "description": "Image for the dice game card",
+      "imageUrl": "https://images.unsplash.com/photo-1591122588299-0d1da431525d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxkaWNlfGVufDB8fHx8MTc1OTM4MTExOHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "dice game"
     }
   ]
 }
