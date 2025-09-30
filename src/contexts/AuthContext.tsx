@@ -2,7 +2,7 @@
 "use client";
 
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-import { onAuthStateChanged, User, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile } from 'firebase/auth';
+import { onAuthStateChanged, User, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile, sendEmailVerification } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
@@ -13,6 +13,8 @@ type AuthContextType = {
   login: (email: string, pass: string) => Promise<any>;
   signup: (email: string, pass: string, nickname: string) => Promise<any>;
   logout: () => Promise<any>;
+  updateUserProfile: (updates: { displayName?: string; photoURL?: string }) => Promise<void>;
+  sendVerificationEmail: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -34,9 +36,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = async (email: string, password: string) => {
     setLoading(true);
     try {
-      console.log('Attempting sign in with:', email);
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      console.log('Sign in successful:', userCredential.user);
+      await signInWithEmailAndPassword(auth, email, password);
     } catch (error: any) {
       console.error('Sign in error details:', error);
       switch (error.code) {
@@ -44,6 +44,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         case 'auth/wrong-password':
         case 'auth/invalid-credential':
           throw new Error('Неверный email или пароль.');
+        case 'auth/invalid-email':
+            throw new Error('Пожалуйста, введите действительный email адрес.');
         case 'auth/configuration-not-found':
           throw new Error('Ошибка конфигурации Firebase. Обратитесь в поддержку.');
         default:
@@ -61,7 +63,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       await updateProfile(userCredential.user, {
         displayName: nickname
       });
-      // onAuthStateChanged will handle setting the user.
+      // Refresh the user state to get the new display name
+      setUser({ ...userCredential.user });
     } catch (error: any) {
       switch (error.code) {
         case 'auth/email-already-in-use':
@@ -90,8 +93,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const updateUserProfile = async (updates: { displayName?: string; photoURL?: string }) => {
+    if (!auth.currentUser) return;
+    try {
+        await updateProfile(auth.currentUser, updates);
+        setUser({ ...auth.currentUser });
+        toast({ title: "Профиль обновлен!" });
+    } catch (error: any) {
+        toast({ title: "Ошибка обновления", description: error.message, variant: 'destructive' });
+        throw error;
+    }
+  };
+
+  const sendVerificationEmail = async () => {
+    if (!auth.currentUser) return;
+    try {
+        await sendEmailVerification(auth.currentUser);
+        toast({ title: "Письмо отправлено", description: "Проверьте свою почту для подтверждения."});
+    } catch (error: any) {
+        toast({ title: "Ошибка", description: "Не удалось отправить письмо. Попробуйте позже.", variant: 'destructive' });
+        throw error;
+    }
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, logout, updateUserProfile, sendVerificationEmail }}>
       {children}
     </AuthContext.Provider>
   );
