@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Rocket, Wallet, Target, Play, Zap, Users, History, Bot, Repeat, ToggleRight } from 'lucide-react';
+import { Rocket, Wallet, Target, Play, Zap, Users, History } from 'lucide-react';
 import { useBalance } from '@/contexts/BalanceContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { translations } from '@/lib/translations';
@@ -25,7 +25,6 @@ type Player = {
   bet: number;
   cashedOutAt?: number;
   winnings?: number;
-  isBot?: boolean;
 };
 
 const prng = (seed: number) => {
@@ -43,12 +42,12 @@ const generateCrashPoint = (seed: number) => {
 
 const generateCurveData = (crashPoint: number) => {
     const data = [];
-    const duration = Math.log(crashPoint) * 5; 
+    const duration = Math.log(crashPoint) * 8; // Slower growth
     const steps = duration * 60; 
 
     for (let i = 0; i <= steps; i++) {
         const t = (i / steps) * duration;
-        const multiplier = Math.pow(Math.E, t / 5);
+        const multiplier = Math.pow(Math.E, t / 8); // Slower growth
         if (multiplier >= crashPoint) {
             data.push({ time: t, value: crashPoint });
             break;
@@ -63,9 +62,9 @@ const initialPlayers: Player[] = [
     { id: 1, name: "MysticGambler", avatar: "https://picsum.photos/seed/rank1/40/40", bet: 150 },
     { id: 2, name: "CasinoQueen", avatar: "https://picsum.photos/seed/rank2/40/40", bet: 25 },
     { id: 3, name: "JackpotJoe", avatar: "https://picsum.photos/seed/rank3/40/40", bet: 500 },
-    { id: 4, name: "BettingKing", avatar: "https://picsum.photos/seed/rank4/40/40", bet: 75, isBot: true },
+    { id: 4, name: "BettingKing", avatar: "https://picsum.photos/seed/rank4/40/40", bet: 75 },
     { id: 5, name: "LuckyLucy", avatar: "https://picsum.photos/seed/rank5/40/40", bet: 1000 },
-    { id: 6, name: "HighRoller", avatar: "https://picsum.photos/seed/rank8/40/40", bet: 250, isBot: true },
+    { id: 6, name: "HighRoller", avatar: "https://picsum.photos/seed/rank8/40/40", bet: 250 },
 ];
 
 
@@ -75,7 +74,7 @@ export default function CrashGame() {
 
   // Game state
   const [phase, setPhase] = useState<GamePhase>('BETTING');
-  const [countdown, setCountdown] = useState(5);
+  const [countdown, setCountdown] = useState(10);
   const [multiplier, setMultiplier] = useState(1.0);
   const [history, setHistory] = useState<number[]>([1.23, 4.56, 2.01, 10.89, 1.01, 3.14, 5.00]);
   const [chartData, setChartData] = useState<{ time: number; value: number }[]>([{ time: 0, value: 1.0 }]);
@@ -113,7 +112,7 @@ export default function CrashGame() {
     // Simulate new players joining
     setPlayers(initialPlayers.sort(() => 0.5 - Math.random()).slice(0, Math.floor(Math.random() * 4) + 3));
 
-    let countdownValue = 5;
+    let countdownValue = 10;
     setCountdown(countdownValue);
     const countdownInterval = setInterval(() => {
         countdownValue--;
@@ -285,7 +284,6 @@ export default function CrashGame() {
                                     <AvatarFallback>{p.name.charAt(0)}</AvatarFallback>
                                 </Avatar>
                                 <span>{p.name}</span>
-                                {p.isBot && <Bot className="h-4 w-4 text-muted-foreground"/>}
                              </div>
                               <div className="text-right">
                                 <div className="font-bold">{p.bet} ₽</div>
