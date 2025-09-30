@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import { BalanceProvider } from '@/contexts/BalanceContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
+import { AuthProvider } from '@/contexts/AuthContext';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -27,14 +28,16 @@ export default function RootLayout({
   return (
     <html lang="en" className={cn(inter.variable, "dark")} suppressHydrationWarning>
       <body className="font-body antialiased">
-        <LanguageProvider>
-          <ThemeProvider>
-            <BalanceProvider>
-                {children}
-                <Toaster />
-            </BalanceProvider>
-          </ThemeProvider>
-        </LanguageProvider>
+        <AuthProvider>
+          <LanguageProvider>
+            <ThemeProvider>
+              <BalanceProvider>
+                  {children}
+                  <Toaster />
+              </BalanceProvider>
+            </ThemeProvider>
+          </LanguageProvider>
+        </AuthProvider>
       </body>
     </html>
   );

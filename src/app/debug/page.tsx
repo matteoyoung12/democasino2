@@ -9,11 +9,9 @@ export default function DebugPage() {
   useEffect(() => {
     const checkFirebase = async () => {
       try {
-        // Check Firebase initialization
         const apps = getApps();
         console.log('Firebase apps:', apps.length);
         
-        // Check auth configuration
         if (auth.app) {
           setStatus('✅ Firebase Auth configured correctly');
           console.log('Auth config OK');

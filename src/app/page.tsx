@@ -6,10 +6,12 @@ import { Button } from '@/components/ui/button';
 import Logo from '@/components/logo';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { translations } from '@/lib/translations';
+import { useAuth } from '@/contexts/AuthContext';
 
 function HomePageContent() {
   const { language } = useLanguage();
   const t = translations[language];
+  const { user } = useAuth();
 
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-background">
@@ -27,9 +29,20 @@ function HomePageContent() {
           {t.heroSlogan}
         </p>
         <div className="mt-8 flex flex-col gap-4 sm:flex-row">
-          <Button asChild variant="default" size="lg" className="px-8 py-6 text-lg bg-primary hover:bg-primary/90 text-primary-foreground">
-             <Link href="/dashboard">{t.viewGames}</Link>
-          </Button>
+          {user ? (
+             <Button asChild variant="default" size="lg" className="px-8 py-6 text-lg bg-primary hover:bg-primary/90 text-primary-foreground">
+               <Link href="/dashboard">{t.viewGames}</Link>
+            </Button>
+          ) : (
+            <>
+              <Button asChild size="lg" className="px-8 py-6 text-lg">
+                <Link href="/signup">Зарегистрироваться</Link>
+              </Button>
+              <Button asChild variant="secondary" size="lg" className="px-8 py-6 text-lg">
+                <Link href="/login">Войти</Link>
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </div>
