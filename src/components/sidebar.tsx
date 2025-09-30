@@ -50,7 +50,7 @@ const RouletteIcon = (props: React.SVGProps<SVGSVGElement>) => (
 
 
 const topItems = [
-  { href: "/dashboard", labelKey: "lobby", icon: Swords },
+  { href: "/", labelKey: "lobby", icon: Swords },
 ];
 
 const gameItems = [
@@ -63,6 +63,7 @@ const gameItems = [
 ];
 
 const mainNavItems = [
+    { href: "/dashboard/wallet", labelKey: "balance", icon: Wallet },
     { href: "/dashboard/tournaments", labelKey: "tournaments", icon: Trophy },
     { href: "/dashboard/ranks", labelKey: "ranks", icon: Star },
     { href: "/dashboard/bonuses", labelKey: "bonuses", icon: Gift },
@@ -83,7 +84,7 @@ export default function Sidebar() {
 
     return (
         <aside className="w-20 bg-card flex flex-col items-center py-4 px-2">
-             <Link href="/dashboard" className="mb-8">
+             <Link href="/" className="mb-8">
                 <Logo className="text-sm text-center" />
                </Link>
             <TooltipProvider>
@@ -129,3 +130,5 @@ export default function Sidebar() {
         </aside>
     )
 }
+
+    

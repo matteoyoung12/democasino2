@@ -1,3 +1,4 @@
+
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
@@ -37,7 +38,7 @@ export default function RootLayout({
                     <Sidebar />
                     <div className="flex flex-1 flex-col">
                         <Header />
-                        <main className="flex-1 p-4 sm:p-6">
+                        <main className="flex-1 p-4 sm:p-6 overflow-auto">
                             {children}
                         </main>
                     </div>
@@ -51,3 +52,5 @@ export default function RootLayout({
     </html>
   );
 }
+
+    

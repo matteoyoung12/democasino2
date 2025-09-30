@@ -15,7 +15,8 @@ import {
   User,
   Volume2,
   Trophy,
-  LogOut
+  LogOut,
+  Wallet
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -45,9 +46,6 @@ export default function Header() {
     const { balance, setBalance } = useBalance();
     const t = translations[language];
     const { user, logout } = useAuth();
-
-    const handleDeposit = () => setBalance(prev => prev + 100);
-    const handleWithdraw = () => setBalance(prev => prev > 100 ? prev - 100 : 0);
 
     return (
         <header className="flex h-20 items-center justify-between border-b border-border bg-card px-6">
@@ -88,11 +86,15 @@ export default function Header() {
                             </div>
                         </div>
 
-                        <Button onClick={handleDeposit} variant="ghost" className="text-green-500 hover:text-green-500 hover:bg-green-500/10">
-                            <PlusCircle className="mr-2" /> {t.deposit}
+                        <Button asChild variant="ghost" className="text-green-500 hover:text-green-500 hover:bg-green-500/10">
+                            <Link href="/dashboard/wallet">
+                                <PlusCircle className="mr-2" /> {t.deposit}
+                            </Link>
                         </Button>
-                         <Button onClick={handleWithdraw} variant="ghost" className="text-red-500 hover:text-red-500 hover:bg-red-500/10">
-                            <MinusCircle className="mr-2" /> {t.withdraw}
+                         <Button asChild variant="ghost" className="text-red-500 hover:text-red-500 hover:bg-red-500/10">
+                            <Link href="/dashboard/wallet">
+                                <MinusCircle className="mr-2" /> {t.withdraw}
+                            </Link>
                         </Button>
 
                          <DropdownMenu>
@@ -107,6 +109,12 @@ export default function Header() {
                                     <Link href="/dashboard/profile">
                                         <User className="mr-2 h-4 w-4" />
                                         <span>{t.profile}</span>
+                                    </Link>
+                                </DropdownMenuItem>
+                                 <DropdownMenuItem asChild>
+                                    <Link href="/dashboard/wallet">
+                                        <Wallet className="mr-2 h-4 w-4" />
+                                        <span>{t.balance}</span>
                                     </Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={logout}>
@@ -130,3 +138,5 @@ export default function Header() {
         </header>
     );
 }
+
+    
