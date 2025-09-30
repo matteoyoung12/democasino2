@@ -5,20 +5,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Swords,
-  Users,
-  Star,
-  MessageSquare,
-  HelpCircle,
-  Gift,
-  Bell,
-  Wallet,
   Coins,
   Rocket,
   Bomb,
-  Gem,
   Spade,
   Disc,
-  Trophy,
   Dice5
 } from "lucide-react";
 import Logo from "@/components/logo";
@@ -50,11 +41,8 @@ const RouletteIcon = (props: React.SVGProps<SVGSVGElement>) => (
 );
 
 
-const topItems = [
+const allNavItems = [
   { href: "/", labelKey: "lobby", icon: Swords },
-];
-
-const gameItems = [
   { href: "/dashboard/plinko", labelKey: "plinko", icon: Disc },
   { href: "/dashboard/roulette", labelKey: "roulette", icon: RouletteIcon },
   { href: "/dashboard/crash", labelKey: "crash", icon: Rocket },
@@ -64,25 +52,10 @@ const gameItems = [
   { href: "/dashboard/dice", labelKey: "dice", icon: Dice5 },
 ];
 
-const mainNavItems = [
-    { href: "/dashboard/wallet", labelKey: "balance", icon: Wallet },
-    { href: "/dashboard/tournaments", labelKey: "tournaments", icon: Trophy },
-    { href: "/dashboard/ranks", labelKey: "ranks", icon: Star },
-    { href: "/dashboard/bonuses", labelKey: "bonuses", icon: Gift },
-];
-
-const bottomItems = [
-    { href: "/dashboard/support", labelKey: "support", icon: HelpCircle },
-    { href: "#", labelKey: "notifications", icon: Bell, notification: true },
-]
-
-
 export default function Sidebar() {
     const pathname = usePathname();
     const { language } = useLanguage();
     const t = translations[language];
-
-    const allNavItems = [...topItems, ...gameItems, ...mainNavItems];
 
     return (
         <aside className="w-20 bg-card flex flex-col items-center py-4 px-2">
@@ -106,28 +79,6 @@ export default function Sidebar() {
                         </Tooltip>
                     ))}
                 </nav>
-                <div className="mt-auto flex flex-col items-center gap-3">
-                    {bottomItems.map((item) => (
-                         <Tooltip key={item.labelKey}>
-                            <TooltipTrigger asChild>
-                                <Button asChild variant='ghost' className="h-12 w-12 rounded-lg relative">
-                                    <Link href={item.href}>
-                                        <item.icon className="h-6 w-6 text-primary" />
-                                        {item.notification && (
-                                            <span className="absolute top-2 right-2 flex h-3 w-3">
-                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500 border-2 border-card"></span>
-                                            </span>
-                                        )}
-                                    </Link>
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent side="right">
-                                <p>{t[item.labelKey as keyof typeof t]}</p>
-                            </TooltipContent>
-                        </Tooltip>
-                    ))}
-                </div>
             </TooltipProvider>
         </aside>
     )
