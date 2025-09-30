@@ -1,23 +1,16 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Bomb, Gem, Play, Wallet, PiggyBank } from 'lucide-react';
+import { Bomb, Gem, Play, PiggyBank } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { useBalance } from '@/contexts/BalanceContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { translations } from '@/lib/translations';
-
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 
 type Tile = {
   isMine: boolean;
@@ -38,44 +31,49 @@ export default function MinesGame() {
 
   const [gameState, setGameState] = useState<GameState>('betting');
   const [grid, setGrid] = useState<Tile[]>(createInitialGrid());
-  const [betAmount, setBetAmount] = useState(10);
+  const [betAmount, setBetAmount] = useState(1.00);
   const [mineCount, setMineCount] = useState(3);
   const [revealedGems, setRevealedGems] = useState(0);
-  const [currentMultiplier, setCurrentMultiplier] = useState(1.0);
-  const [nextMultiplier, setNextMultiplier] = useState(1.0);
+
   const { balance, setBalance } = useBalance();
   const { toast } = useToast();
 
-  const calculateMultiplier = (gemsFound: number, mines: number) => {
+  const calculateMultiplier = (gemsFound: number, mines: number): number => {
     if (gemsFound === 0) return 1.0;
     const totalTiles = GRID_SIZE;
     const safeTiles = totalTiles - mines;
-    if (gemsFound > safeTiles) return 0; // Should not happen
+    if (gemsFound > safeTiles) return 0;
 
-    let combinationsOfSafeTiles = 1;
-    let combinationsOfGemsFound = 1;
+    let combinationsTotal = 1;
+    let combinationsSafe = 1;
 
     for (let i = 0; i < gemsFound; i++) {
-        combinationsOfSafeTiles = (combinationsOfSafeTiles * (totalTiles - i)) / (i + 1);
-        combinationsOfGemsFound = (combinationsOfGemsFound * (safeTiles - i)) / (i + 1);
+        combinationsTotal = (combinationsTotal * (totalTiles - i)) / (i + 1);
+        combinationsSafe = (combinationsSafe * (safeTiles - i)) / (i + 1);
     }
     
-    return (combinationsOfSafeTiles / combinationsOfGemsFound) * 0.95; // 5% house edge
+    const probability = combinationsSafe / combinationsTotal;
+    if (probability === 0) return 0;
+    
+    return (1 / probability) * 0.95; // 5% house edge
   };
 
-  useEffect(() => {
-    if (gameState === 'playing') {
-      setCurrentMultiplier(calculateMultiplier(revealedGems, mineCount));
-      setNextMultiplier(calculateMultiplier(revealedGems + 1, mineCount));
-    } else {
-      setCurrentMultiplier(1.0);
-      setNextMultiplier(calculateMultiplier(1, mineCount));
-    }
-  }, [revealedGems, mineCount, gameState]);
+  const multipliers = useMemo(() => {
+    const safeTiles = GRID_SIZE - mineCount;
+    return Array.from({ length: safeTiles }, (_, i) => calculateMultiplier(i + 1, mineCount));
+  }, [mineCount]);
+
+  const currentMultiplier = useMemo(() => {
+    if (revealedGems === 0) return 1;
+    return multipliers[revealedGems - 1] || 1;
+  }, [revealedGems, multipliers]);
+  
+  const currentWinnings = betAmount * currentMultiplier;
+
 
   const startGame = () => {
     if (betAmount <= 0) {
-      toast({ title: t.invalidBetAmount, variant: 'destructive' });
+      toast({ title: "Сумма ставки должна быть положительной", variant: 'destructive' });
       return;
     }
     if (balance < betAmount) {
@@ -111,8 +109,7 @@ export default function MinesGame() {
         title: t.boom,
         variant: 'destructive',
       });
-      // Reveal all mines
-      const finalGrid = newGrid.map(tile => ({...tile, isRevealed: tile.isMine || tile.isRevealed }));
+      const finalGrid = newGrid.map(tile => ({...tile, isRevealed: true }));
       setGrid(finalGrid);
     } else {
       setRevealedGems(prev => prev + 1);
@@ -123,15 +120,22 @@ export default function MinesGame() {
   const handleCashout = () => {
     if (gameState !== 'playing' || revealedGems === 0) return;
 
-    const winnings = betAmount * currentMultiplier;
-    setBalance(prev => prev + winnings);
+    setBalance(prev => prev + currentWinnings);
     toast({
         title: t.cashedOut,
-        description: `${t.youWonAmount} ${winnings.toFixed(2)} ${t.credits}.`,
+        description: `${t.youWonAmount} ${currentWinnings.toFixed(2)} ${t.credits}.`,
     });
-    setGameState('betting');
+    setGameState('busted');
     const finalGrid = grid.map(tile => ({...tile, isRevealed: true}));
     setGrid(finalGrid);
+  }
+
+  const quickBet = (action: 'half' | 'double') => {
+    if (action === 'half') {
+        setBetAmount(prev => Math.max(0.01, parseFloat((prev / 2).toFixed(2))));
+    } else if (action === 'double') {
+        setBetAmount(prev => parseFloat((prev * 2).toFixed(2)));
+    }
   }
 
   const renderGrid = () => {
@@ -141,17 +145,19 @@ export default function MinesGame() {
         onClick={() => handleTileClick(index)}
         disabled={gameState !== 'playing' || tile.isRevealed}
         className={cn(
-          'aspect-square rounded-lg flex items-center justify-center transition-all duration-300 transform hover:scale-105',
+          'aspect-square rounded-lg flex items-center justify-center transition-all duration-300 transform',
           {
-            'bg-primary/10 hover:bg-primary/20': !tile.isRevealed,
-            'bg-green-500/20 border border-green-500': tile.isRevealed && !tile.isMine,
-            'bg-red-500/20 border border-red-500 animate-pulse': tile.isRevealed && tile.isMine,
+            'bg-primary/20 hover:bg-primary/30': !tile.isRevealed && gameState === 'playing',
+            'bg-secondary': !tile.isRevealed && gameState !== 'playing',
+            'bg-green-500/20 border-2 border-green-500': tile.isRevealed && !tile.isMine,
+            'bg-red-500/20 border-2 border-red-500 animate-pulse': tile.isRevealed && tile.isMine,
             'cursor-not-allowed': gameState !== 'playing' || tile.isRevealed,
+            'hover:scale-105': gameState === 'playing' && !tile.isRevealed
           }
         )}
       >
         {tile.isRevealed && (
-          tile.isMine ? <Bomb className="h-6 w-6 text-red-500" /> : <Gem className="h-6 w-6 text-green-500" />
+          tile.isMine ? <Bomb className="h-8 w-8 text-red-400" /> : <Gem className="h-8 w-8 text-cyan-400" />
         )}
       </button>
     ));
@@ -159,64 +165,115 @@ export default function MinesGame() {
   
   const isCashingOut = gameState === 'playing' && revealedGems > 0;
 
+  const MainButton = () => {
+      if (gameState === 'playing') {
+          return (
+             <Button onClick={handleCashout} disabled={!isCashingOut} size="lg" className="h-16 w-full text-xl bg-green-500 hover:bg-green-600">
+                <PiggyBank className="mr-2" /> 
+                <span>
+                    {t.cashOut}
+                    {isCashingOut && <span className="ml-2 font-bold">{currentWinnings.toFixed(2)} ₽</span>}
+                </span>
+            </Button>
+          )
+      }
+      return (
+        <Button onClick={() => {
+            setGameState('betting');
+            setGrid(createInitialGrid());
+            setRevealedGems(0);
+            if (gameState === 'betting') {
+                startGame();
+            }
+        }} size="lg" className="h-16 w-full text-xl bg-primary text-primary-foreground hover:bg-primary/90">
+            <Play className="mr-2"/> {gameState === 'busted' ? t.playAgain : "Играть"}
+        </Button>
+      )
+  }
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full">
+      {/* CONTROL PANEL */}
       <Card className="lg:col-span-1 bg-card/80">
-        <CardHeader>
-            <CardTitle>Управление</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-4">
-            <>
-              <div className="grid gap-2">
-                <Label htmlFor="bet-amount" className="flex items-center gap-2"><Wallet /> {t.betAmount}</Label>
-                <Input id="bet-amount" type="number" value={betAmount} onChange={(e) => setBetAmount(parseFloat(e.target.value))} disabled={gameState === 'playing'} />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="mine-count" className="flex items-center gap-2"><Bomb /> {t.mines}</Label>
-                <Select value={String(mineCount)} onValueChange={(val) => setMineCount(Number(val))} disabled={gameState === 'playing'}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={t.numberOfMines} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[...Array(24).keys()].map(i => i + 1).map(i => (
-                      <SelectItem key={i} value={String(i)}>{i}</SelectItem>
+        <CardContent className="p-4 grid gap-6">
+            <div className="grid gap-2">
+                <Label htmlFor="bet-amount" className="font-semibold">СУММА СТАВКИ</Label>
+                <div className="relative">
+                    <Input 
+                        id="bet-amount" 
+                        type="number" 
+                        value={betAmount.toFixed(2)} 
+                        onChange={(e) => setBetAmount(parseFloat(e.target.value) || 0)} 
+                        disabled={gameState === 'playing'}
+                        className="pr-20 text-lg font-bold h-12"
+                    />
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
+                        <Button variant="ghost" size="sm" onClick={() => quickBet('double')} disabled={gameState === 'playing'} className="h-auto px-2 py-1">x2</Button>
+                        <Button variant="ghost" size="sm" onClick={() => quickBet('half')} disabled={gameState === 'playing'} className="h-auto px-2 py-1">1/2</Button>
+                    </div>
+                </div>
+                <div className="grid grid-cols-4 gap-2">
+                    {[50, 100, 200, 500, 750, 1000].map(val => (
+                        <Button key={val} variant="secondary" size="sm" onClick={() => setBetAmount(val)} disabled={gameState === 'playing'}>{val}</Button>
                     ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                </div>
+            </div>
 
-              {gameState === 'playing' && (
-                <Button onClick={handleCashout} disabled={!isCashingOut} size="lg" className="h-16 w-full text-xl bg-green-500 hover:bg-green-600">
-                  <PiggyBank className="mr-2" /> {t.cashOut} { (betAmount * currentMultiplier).toFixed(2) }
-                </Button>
-              )}
-               {(gameState === 'betting' || gameState === 'busted') && (
-                 <Button onClick={gameState === 'busted' ? () => {
-                    setGameState('betting');
-                    setGrid(createInitialGrid());
-                } : startGame} size="lg" className="h-16 w-full text-xl bg-primary text-primary-foreground hover:bg-primary/90">
-                    <Play className="mr-2"/> {gameState === 'busted' ? t.playAgain : t.placeBet}
-                </Button>
-               )}
-            </>
+            <div className="grid gap-2">
+                <Label className="font-semibold">КОЛИЧЕСТВО БОМБ</Label>
+                <div className="grid grid-cols-5 gap-2">
+                    {[3, 5, 10, 24].map(count => (
+                        <Button key={count} variant={mineCount === count ? 'destructive' : 'secondary'} onClick={() => setMineCount(count)} disabled={gameState === 'playing'}>
+                            {count}
+                        </Button>
+                    ))}
+                     <Button variant="secondary" disabled={gameState === 'playing'}>Изменить</Button>
+                </div>
+            </div>
+
+            <MainButton />
+
+            <Button variant="outline">Как играть?</Button>
         </CardContent>
       </Card>
       
+      {/* GAME AREA */}
        <Card className="lg:col-span-2 bg-card/80">
-        <CardContent className="p-4 relative">
-             {(gameState === 'playing' || gameState === 'busted') && (
-                <div className="absolute top-4 right-4 bg-background/80 p-2 rounded-lg text-sm space-y-1 z-10">
-                    <p>{t.gemsFound}: <span className="font-bold text-primary">{revealedGems}</span></p>
-                    <p>{t.current}: <span className="font-bold text-primary">{currentMultiplier.toFixed(2)}x</span></p>
-                    <p>{t.next}: <span className="font-bold text-green-500">{nextMultiplier.toFixed(2)}x</span></p>
+        <CardContent className="p-6 flex flex-col justify-between items-center h-full">
+            <div className="flex justify-around items-center w-full">
+                <div className="flex flex-col items-center gap-2 text-cyan-400">
+                    <Gem className="h-8 w-8" />
+                    <span className="text-xl font-bold">{GRID_SIZE - mineCount}</span>
                 </div>
-              )}
-            <div className="grid grid-cols-5 gap-2">
-                {gameState === 'betting' && !grid.some(t => t.isRevealed)
-                 ? Array(GRID_SIZE).fill(0).map((_, i) => <div key={i} className="aspect-square rounded-lg bg-primary/10" />)
-                 : renderGrid()
-                }
+                <div className="grid grid-cols-5 gap-2 w-full max-w-lg">
+                    {renderGrid()}
+                </div>
+                <div className="flex flex-col items-center gap-2 text-red-400">
+                    <Bomb className="h-8 w-8" />
+                    <span className="text-xl font-bold">{mineCount}</span>
+                </div>
             </div>
+            
+            <Carousel opts={{
+                align: "start",
+                dragFree: true
+             }} className="w-full max-w-xl mt-6">
+                <CarouselContent className="-ml-2">
+                    {multipliers.map((multiplier, index) => (
+                    <CarouselItem key={index} className="pl-2 basis-1/6 md:basis-1/8">
+                        <div className={cn(
+                            "p-2 rounded-md text-center bg-secondary",
+                            revealedGems === index + 1 && "border-2 border-primary"
+                        )}>
+                            <p className="font-bold text-sm text-primary">{multiplier.toFixed(2)}x</p>
+                            <p className="text-xs text-muted-foreground">{index + 1} Hit</p>
+                        </div>
+                    </CarouselItem>
+                    ))}
+                </CarouselContent>
+                <CarouselPrevious />
+                <CarouselNext />
+            </Carousel>
         </CardContent>
        </Card>
     </div>
