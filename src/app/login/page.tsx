@@ -44,7 +44,7 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
-          <Logo className="mb-2 text-4xl mx-auto"/>
+          <Logo className="mb-2 mx-auto"/>
           <CardTitle>Вход в аккаунт</CardTitle>
           <CardDescription>Введите свои данные для входа</CardDescription>
         </CardHeader>
