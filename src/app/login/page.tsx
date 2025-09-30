@@ -11,10 +11,12 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import Logo from '@/components/logo';
+import { Eye, EyeOff } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const { login } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
@@ -60,16 +62,23 @@ export default function LoginPage() {
                 disabled={isLoading}
               />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 relative">
               <Label htmlFor="password">Пароль</Label>
               <Input
                 id="password"
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={isLoading}
               />
+              <button
+                type="button"
+                className="absolute inset-y-0 right-0 top-6 flex items-center px-3 text-muted-foreground"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </button>
             </div>
           </CardContent>
           <CardFooter className="flex-col gap-4">

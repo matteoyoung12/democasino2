@@ -11,11 +11,15 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import Logo from '@/components/logo';
+import { Eye, EyeOff } from 'lucide-react';
 
 export default function SignupPage() {
   const [email, setEmail] = useState('');
+  const [nickname, setNickname] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { signup } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
@@ -27,9 +31,13 @@ export default function SignupPage() {
       toast({ title: "Пароли не совпадают", variant: "destructive" });
       return;
     }
+     if (!nickname) {
+      toast({ title: "Введите никнейм", variant: "destructive" });
+      return;
+    }
     setIsLoading(true);
     try {
-      await signup(email, password);
+      await signup(email, password, nickname);
       toast({ title: "Регистрация прошла успешно!" });
       router.push('/dashboard');
     } catch (error: any) {
@@ -53,6 +61,18 @@ export default function SignupPage() {
         </CardHeader>
         <form onSubmit={handleSignup}>
           <CardContent className="space-y-4">
+             <div className="space-y-2">
+              <Label htmlFor="nickname">Никнейм</Label>
+              <Input
+                id="nickname"
+                type="text"
+                placeholder="Ваш никнейм"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                required
+                disabled={isLoading}
+              />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -65,27 +85,41 @@ export default function SignupPage() {
                 disabled={isLoading}
               />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 relative">
               <Label htmlFor="password">Пароль</Label>
               <Input
                 id="password"
-                type="password"
+                type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={isLoading}
               />
+               <button
+                type="button"
+                className="absolute inset-y-0 right-0 top-6 flex items-center px-3 text-muted-foreground"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </button>
             </div>
-             <div className="space-y-2">
+             <div className="space-y-2 relative">
               <Label htmlFor="confirm-password">Подтвердите пароль</Label>
               <Input
                 id="confirm-password"
-                type="password"
+                type={showConfirmPassword ? "text" : "password"}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
                 disabled={isLoading}
               />
+               <button
+                type="button"
+                className="absolute inset-y-0 right-0 top-6 flex items-center px-3 text-muted-foreground"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              >
+                {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </button>
             </div>
           </CardContent>
           <CardFooter className="flex-col gap-4">

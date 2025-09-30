@@ -2,7 +2,7 @@
 "use client";
 
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-import { onAuthStateChanged, User, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { onAuthStateChanged, User, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
@@ -11,7 +11,7 @@ type AuthContextType = {
   user: User | null;
   loading: boolean;
   login: (email: string, pass: string) => Promise<any>;
-  signup: (email: string, pass: string) => Promise<any>;
+  signup: (email: string, pass: string, nickname: string) => Promise<any>;
   logout: () => Promise<any>;
 };
 
@@ -41,33 +41,39 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error('Sign in error details:', error);
       switch (error.code) {
         case 'auth/user-not-found':
-          throw new Error('No user found with this email.');
+        case 'auth/invalid-credential':
+          throw new Error('Неверный email или пароль.');
         case 'auth/wrong-password':
-          throw new Error('Incorrect password.');
+          throw new Error('Неверный пароль.');
         case 'auth/configuration-not-found':
-          throw new Error('Firebase configuration error. Please contact support.');
+          throw new Error('Ошибка конфигурации Firebase. Обратитесь в поддержку.');
         default:
-          throw new Error('Failed to sign in. Please try again.');
+          throw new Error('Не удалось войти. Пожалуйста, попробуйте еще раз.');
       }
     } finally {
       setLoading(false);
     }
   };
 
-  const signup = async (email: string, password: string) => {
+  const signup = async (email: string, password: string, nickname: string) => {
     setLoading(true);
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      if(userCredential.user) {
+        await updateProfile(userCredential.user, {
+            displayName: nickname
+        });
+      }
     } catch (error: any) {
       switch (error.code) {
         case 'auth/email-already-in-use':
-          throw new Error('This email is already in use.');
+          throw new Error('Этот email уже используется.');
         case 'auth/invalid-email':
-          throw new Error('Please enter a valid email address.');
+          throw new Error('Пожалуйста, введите действительный email адрес.');
         case 'auth/weak-password':
-          throw new Error('Password should be at least 6 characters.');
+          throw new Error('Пароль должен состоять как минимум из 6 символов.');
         default:
-          throw new Error('Failed to sign up. Please try again.');
+          throw new Error('Не удалось зарегистрироваться. Пожалуйста, попробуйте еще раз.');
       }
     } finally {
       setLoading(false);
@@ -80,7 +86,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       await signOut(auth);
       router.push('/');
     } catch (error) {
-      toast({ title: "Error logging out", variant: 'destructive' });
+      toast({ title: "Ошибка при выходе", variant: 'destructive' });
     } finally {
       setLoading(false);
     }

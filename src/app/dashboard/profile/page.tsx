@@ -7,14 +7,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useLanguage } from "@/contexts/LanguageContext";
 import { translations } from "@/lib/translations";
 import { User, Shield, Crown, TrendingUp, History } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function ProfilePage() {
     const { language } = useLanguage();
     const t = translations[language];
+    const { user: authUser } = useAuth();
+
 
     const user = {
-        name: "Player123",
-        avatar: "https://picsum.photos/seed/user/100/100",
+        name: authUser?.displayName || "Player123",
+        avatar: authUser?.photoURL || "https://picsum.photos/seed/user/100/100",
         level: 12,
         xp: 450,
         xpNeeded: 1000,
