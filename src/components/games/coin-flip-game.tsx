@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -13,19 +14,31 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { translations } from '@/lib/translations';
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 
-type GameState = 'betting' | 'playing' | 'busted';
+type GameState = 'betting' | 'playing' | 'flipping' | 'busted';
+type Choice = 'left' | 'right' | null;
 
 const MAX_ROUNDS = 10;
 
 const calculateMultiplier = (round: number): number => {
   if (round === 0) return 1.0;
-  // Exponential growth for multipliers, starting from ~1.9x for round 1
   return parseFloat((1.9 * Math.pow(2, round - 1)).toFixed(1));
 };
 
+const Coin = ({ side, isFlipping }: { side: 'left' | 'right', isFlipping: boolean }) => (
+    <div className={cn("relative w-32 h-32 preserve-3d", isFlipping && "animate-flip")}>
+        <div className="absolute w-full h-full backface-hidden rounded-full border-4 flex items-center justify-center bg-blue-500/20 border-blue-500">
+            <span className="text-4xl font-bold text-blue-400">Blat</span>
+        </div>
+        <div className="absolute w-full h-full backface-hidden rounded-full border-4 flex items-center justify-center bg-red-500/20 border-red-500 transform-rotate-y-180">
+            <span className="text-4xl font-bold text-red-400">Fam</span>
+        </div>
+    </div>
+);
+
+
 export default function UpXGame() {
   const { language } = useLanguage();
-  const t = translations.ru; // Game seems to be Russian-centric based on screenshots
+  const t = translations.ru; 
 
   const [gameState, setGameState] = useState<GameState>('betting');
   const [betAmount, setBetAmount] = useState(1.00);
@@ -69,23 +82,28 @@ export default function UpXGame() {
   const handleChoice = (choice: 'left' | 'right') => {
     if (gameState !== 'playing') return;
 
-    if (choice === winSide) {
-      // Win
-      const nextRound = currentRound + 1;
-      setCurrentRound(nextRound);
-      setNewWinSide();
-      if (nextRound >= MAX_ROUNDS) {
-          handleCashout(true);
+    setGameState('flipping');
+
+    setTimeout(() => {
+      if (choice === winSide) {
+        // Win
+        const nextRound = currentRound + 1;
+        setCurrentRound(nextRound);
+        setNewWinSide();
+        setGameState('playing');
+        if (nextRound >= MAX_ROUNDS) {
+            handleCashout(true);
+        }
+      } else {
+        // Lose
+        setGameState('busted');
+        toast({
+          title: "Проигрыш!",
+          description: "В этот раз не повезло.",
+          variant: 'destructive',
+        });
       }
-    } else {
-      // Lose
-      setGameState('busted');
-      toast({
-        title: "Проигрыш!",
-        description: "В этот раз не повезло.",
-        variant: 'destructive',
-      });
-    }
+    }, 2000); // Duration of the flip animation
   };
   
   const handleCashout = useCallback((isAuto = false) => {
@@ -110,9 +128,9 @@ export default function UpXGame() {
   }
 
   const MainButton = () => {
-      if (gameState === 'playing') {
+      if (gameState === 'playing' || gameState === 'flipping') {
           return (
-             <Button onClick={() => handleCashout()} disabled={currentRound === 0} size="lg" className="h-16 w-full text-xl bg-green-500 hover:bg-green-600">
+             <Button onClick={() => handleCashout()} disabled={currentRound === 0 || gameState === 'flipping'} size="lg" className="h-16 w-full text-xl bg-green-500 hover:bg-green-600">
                 <PiggyBank className="mr-2" /> 
                 <span>
                     Забрать
@@ -137,6 +155,28 @@ export default function UpXGame() {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full">
+         <style jsx>{`
+            .preserve-3d {
+                transform-style: preserve-3d;
+            }
+            .backface-hidden {
+                backface-visibility: hidden;
+            }
+            .transform-rotate-y-180 {
+                transform: rotateY(180deg);
+            }
+            @keyframes flip {
+                0% {
+                    transform: rotateY(0deg);
+                }
+                100% {
+                    transform: rotateY(1800deg);
+                }
+            }
+            .animate-flip {
+                animation: flip 2s ease-out forwards;
+            }
+        `}</style>
       {/* CONTROL PANEL */}
       <Card className="lg:col-span-1 bg-card/80">
         <CardContent className="p-4 grid gap-6">
@@ -148,17 +188,17 @@ export default function UpXGame() {
                         type="number" 
                         value={betAmount.toFixed(2)} 
                         onChange={(e) => setBetAmount(parseFloat(e.target.value) || 0)} 
-                        disabled={gameState === 'playing'}
+                        disabled={gameState === 'playing' || gameState === 'flipping'}
                         className="pr-20 text-lg font-bold h-12"
                     />
                     <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
-                        <Button variant="ghost" size="sm" onClick={() => quickBet('double')} disabled={gameState === 'playing'} className="h-auto px-2 py-1">x2</Button>
-                        <Button variant="ghost" size="sm" onClick={() => quickBet('half')} disabled={gameState === 'playing'} className="h-auto px-2 py-1">1/2</Button>
+                        <Button variant="ghost" size="sm" onClick={() => quickBet('double')} disabled={gameState === 'playing' || gameState === 'flipping'} className="h-auto px-2 py-1">x2</Button>
+                        <Button variant="ghost" size="sm" onClick={() => quickBet('half')} disabled={gameState === 'playing' || gameState === 'flipping'} className="h-auto px-2 py-1">1/2</Button>
                     </div>
                 </div>
                 <div className="grid grid-cols-4 gap-2">
                     {[50, 100, 200, 500, 750, 1000].map(val => (
-                        <Button key={val} variant="secondary" size="sm" onClick={() => setBetAmount(val)} disabled={gameState === 'playing'}>{val}</Button>
+                        <Button key={val} variant="secondary" size="sm" onClick={() => setBetAmount(val)} disabled={gameState === 'playing' || gameState === 'flipping'}>{val}</Button>
                     ))}
                 </div>
             </div>
@@ -178,31 +218,37 @@ export default function UpXGame() {
                     <p className="text-muted-foreground">Раунд</p>
                 </div>
 
-                <div className="flex items-center gap-8">
-                     <button
-                        onClick={() => handleChoice('left')}
-                        disabled={gameState !== 'playing'}
-                        className={cn(
-                            "h-32 w-32 rounded-full border-4 transition-all duration-300 flex items-center justify-center",
-                            gameState === 'playing' ? "cursor-pointer hover:scale-110 border-blue-500 bg-blue-500/20" : "border-muted bg-muted/20",
-                            gameState === 'busted' && winSide === 'left' && "border-green-500 bg-green-500/20 animate-pulse",
-                            gameState === 'busted' && winSide !== 'left' && "border-red-500 bg-red-500/20"
-                        )}
-                    >
-                         <span className="text-5xl font-bold text-blue-400">UP</span>
-                     </button>
-                      <button
-                        onClick={() => handleChoice('right')}
-                        disabled={gameState !== 'playing'}
-                        className={cn(
-                            "h-32 w-32 rounded-full border-4 transition-all duration-300 flex items-center justify-center",
-                            gameState === 'playing' ? "cursor-pointer hover:scale-110 border-red-500 bg-red-500/20" : "border-muted bg-muted/20",
-                            gameState === 'busted' && winSide === 'right' && "border-green-500 bg-green-500/20 animate-pulse",
-                             gameState === 'busted' && winSide !== 'right' && "border-red-500 bg-red-500/20"
-                        )}
-                    >
-                         <span className="text-5xl font-bold text-red-400">X</span>
-                     </button>
+                <div className="flex items-center gap-8 perspective-1000">
+                    {gameState === 'flipping' ? (
+                        <Coin isFlipping={true} side="left" />
+                    ) : (
+                        <>
+                            <button
+                                onClick={() => handleChoice('left')}
+                                disabled={gameState !== 'playing'}
+                                className={cn(
+                                    "h-32 w-32 rounded-full border-4 transition-all duration-300 flex items-center justify-center",
+                                    gameState === 'playing' ? "cursor-pointer hover:scale-110 bg-blue-500/20 border-blue-500" : "border-muted bg-muted/20",
+                                    gameState === 'busted' && winSide === 'left' && "border-green-500 bg-green-500/20 animate-pulse",
+                                    gameState === 'busted' && winSide !== 'left' && "border-red-500 bg-red-500/20"
+                                )}
+                            >
+                                <span className="text-4xl font-bold text-blue-400">Blat</span>
+                            </button>
+                            <button
+                                onClick={() => handleChoice('right')}
+                                disabled={gameState !== 'playing'}
+                                className={cn(
+                                    "h-32 w-32 rounded-full border-4 transition-all duration-300 flex items-center justify-center",
+                                    gameState === 'playing' ? "cursor-pointer hover:scale-110 bg-red-500/20 border-red-500" : "border-muted bg-muted/20",
+                                    gameState === 'busted' && winSide === 'right' && "border-green-500 bg-green-500/20 animate-pulse",
+                                    gameState === 'busted' && winSide !== 'right' && "border-red-500 bg-red-500/20"
+                                )}
+                            >
+                                <span className="text-4xl font-bold text-red-400">Fam</span>
+                            </button>
+                        </>
+                    )}
                 </div>
                
                 <div className="text-center">
@@ -232,4 +278,4 @@ export default function UpXGame() {
   );
 }
 
-    
+  
