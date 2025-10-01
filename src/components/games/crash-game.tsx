@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -161,35 +162,61 @@ export default function CrashGame() {
     const [countdown, setCountdown] = useState(10);
     const [multiplier, setMultiplier] = useState(1.0);
     const [history, setHistory] = useState<number[]>([1.54, 1.15, 1.23, 4.56, 2.01, 10.89, 1.01, 3.14]);
-    const [chartData, setChartData] = useState<{ time: number; value: number }[]>([{ time: 0, value: 1.0 }]);
     const [players, setPlayers] = useState<Player[]>([]);
 
-    const nextBet1 = useRef<BetSettings | null>(null);
-    const nextBet2 = useRef<BetSettings | null>(null);
+    const [nextBet1, setNextBet1] = useState<BetSettings | null>(null);
+    const [nextBet2, setNextBet2] = useState<BetSettings | null>(null);
     
-    const liveBet1 = useRef<LiveBet | null>(null);
-    const liveBet2 = useRef<LiveBet | null>(null);
+    const [liveBet1, setLiveBet1] = useState<LiveBet | null>(null);
+    const [liveBet2, setLiveBet2] = useState<LiveBet | null>(null);
     
-    const [displayWinnings1, setDisplayWinnings1] = useState(0);
-    const [displayWinnings2, setDisplayWinnings2] = useState(0);
-
     const animationFrameId = useRef<number>(0);
 
     // --- Core Game Loop ---
     useEffect(() => {
         let interval: NodeJS.Timeout | null = null;
+        
+        const runGame = () => {
+            const seed = Date.now() + Math.random();
+            const crashPoint = generateCrashPoint(seed);
+            const gameDurationMultiplier = 8;
+            const startTime = Date.now();
+            const gameDuration = Math.log(crashPoint) * gameDurationMultiplier * 1000;
+        
+            const animate = () => {
+                const elapsedTime = Date.now() - startTime;
+                const progress = Math.min(elapsedTime / gameDuration, 1);
+                const currentMultiplier = parseFloat((1 + (crashPoint - 1) * Math.pow(progress, 2)).toFixed(2));
+                
+                setMultiplier(currentMultiplier);
+                
+                // Auto cash out check
+                if (liveBet1 && !liveBet1.cashedOut && nextBet1?.autoCashoutEnabled && currentMultiplier >= nextBet1.autoCashout) {
+                    handleCashout(1, currentMultiplier);
+                }
+                if (liveBet2 && !liveBet2.cashedOut && nextBet2?.autoCashoutEnabled && currentMultiplier >= nextBet2.autoCashout) {
+                    handleCashout(2, currentMultiplier);
+                }
+                
+                if (progress < 1) {
+                    animationFrameId.current = requestAnimationFrame(animate);
+                } else {
+                    setMultiplier(crashPoint);
+                    setPhase('CRASHED');
+                }
+            };
+            animationFrameId.current = requestAnimationFrame(animate);
+        };
+
 
         if (phase === 'BETTING') {
             setMultiplier(1.0);
-            setChartData([{ time: 0, value: 1.0 }]);
-            setDisplayWinnings1(0);
-            setDisplayWinnings2(0);
             setPlayers(initialPlayers.sort(() => 0.5 - Math.random()));
             
-            liveBet1.current = nextBet1.current ? { betAmount: nextBet1.current.betAmount, cashedOut: false, winnings: 0 } : null;
-            liveBet2.current = nextBet2.current ? { betAmount: nextBet2.current.betAmount, cashedOut: false, winnings: 0 } : null;
-            nextBet1.current = null;
-            nextBet2.current = null;
+            setLiveBet1(nextBet1 ? { betAmount: nextBet1.betAmount, cashedOut: false, winnings: 0 } : null);
+            setLiveBet2(nextBet2 ? { betAmount: nextBet2.betAmount, cashedOut: false, winnings: 0 } : null);
+            setNextBet1(null);
+            setNextBet2(null);
 
             let count = 10;
             setCountdown(count);
@@ -202,40 +229,11 @@ export default function CrashGame() {
                 }
             }, 1000);
         } else if (phase === 'RUNNING') {
-            const seed = Date.now() + Math.random();
-            const crashPoint = generateCrashPoint(seed);
-            const gameDurationMultiplier = 8;
-            const startTime = Date.now();
-            const gameDuration = Math.log(crashPoint) * gameDurationMultiplier * 1000;
-
-            const animate = () => {
-                const elapsedTime = Date.now() - startTime;
-                const progress = Math.min(elapsedTime / gameDuration, 1);
-                const currentMultiplier = parseFloat((1 + (crashPoint - 1) * Math.pow(progress, 2)).toFixed(2));
-                
-                setMultiplier(currentMultiplier);
-                
-                // Auto cash out check
-                if (liveBet1.current && !liveBet1.current.cashedOut && nextBet1.current?.autoCashoutEnabled && currentMultiplier >= nextBet1.current.autoCashout) {
-                    handleCashout(1, currentMultiplier);
-                }
-                if (liveBet2.current && !liveBet2.current.cashedOut && nextBet2.current?.autoCashoutEnabled && currentMultiplier >= nextBet2.current.autoCashout) {
-                    handleCashout(2, currentMultiplier);
-                }
-                
-                if (progress < 1) {
-                    animationFrameId.current = requestAnimationFrame(animate);
-                } else {
-                    setMultiplier(crashPoint);
-                    setPhase('CRASHED');
-                }
-            };
-            animationFrameId.current = requestAnimationFrame(animate);
-
+            runGame();
         } else if (phase === 'CRASHED') {
             cancelAnimationFrame(animationFrameId.current);
             
-            if ((liveBet1.current && !liveBet1.current.cashedOut) || (liveBet2.current && !liveBet2.current.cashedOut)) {
+            if ((liveBet1 && !liveBet1.cashedOut) || (liveBet2 && !liveBet2.cashedOut)) {
                 toast({
                     title: t.crashedTitle,
                     description: `${t.rocketCrashedAt} ${multiplier.toFixed(2)}x.`,
@@ -257,12 +255,14 @@ export default function CrashGame() {
     }, [phase]);
 
 
-    const handlePlaceBet = (panelId: 1 | 2, settings: BetSettings) => {
-        const betRef = panelId === 1 ? nextBet1 : nextBet2;
+    const handlePlaceBet = useCallback((panelId: 1 | 2, settings: BetSettings) => {
+        const setNextBet = panelId === 1 ? setNextBet1 : setNextBet2;
+        const nextBet = panelId === 1 ? nextBet1 : nextBet2;
 
-        if (betRef.current) {
-            toast({ title: "Ставка уже сделана на следующий раунд", variant: "destructive" });
-            return;
+        if (phase !== 'BETTING' || nextBet) {
+             setNextBet(settings);
+             toast({ title: "Ставка на следующий раунд принята!" });
+             return;
         }
 
         if (settings.betAmount <= 0) {
@@ -275,40 +275,41 @@ export default function CrashGame() {
         }
 
         setBalance(prev => prev - settings.betAmount);
-        betRef.current = settings;
-        toast({ title: "Ставка на следующий раунд принята!" });
-        forceUpdate(); // Force re-render to update button state
-    };
-    
-    const [, forceUpdate] = useState({});
+        setNextBet(settings);
+        toast({ title: "Ставка принята!" });
+    }, [balance, nextBet1, nextBet2, phase, setBalance, t.insufficientBalance, t.invalidBet, toast]);
 
-    const handleCancelBet = (panelId: 1 | 2) => {
-        const betRef = panelId === 1 ? nextBet1 : nextBet2;
-        if (betRef.current) {
-            setBalance(prev => prev + betRef.current!.betAmount);
-            betRef.current = null;
+    const handleCancelBet = useCallback((panelId: 1 | 2) => {
+        const setNextBet = panelId === 1 ? setNextBet1 : setNextBet2;
+        const nextBet = panelId === 1 ? nextBet1 : nextBet2;
+
+        if (nextBet) {
+            if (phase === 'BETTING') {
+                 setBalance(prev => prev + nextBet.betAmount);
+            }
+            setNextBet(null);
             toast({ title: "Ставка отменена" });
-            forceUpdate();
         }
-    };
+    }, [nextBet1, nextBet2, phase, setBalance, toast]);
     
-    const handleCashout = (panelId: 1 | 2, currentMultiplier: number) => {
-        const bet = panelId === 1 ? liveBet1.current : liveBet2.current;
-        if (!bet || bet.cashedOut) return;
+    const handleCashout = useCallback((panelId: 1 | 2, cashoutMultiplier: number) => {
+        const liveBet = panelId === 1 ? liveBet1 : liveBet2;
+        const setLiveBet = panelId === 1 ? setLiveBet1 : setLiveBet2;
+        
+        if (!liveBet || liveBet.cashedOut) return;
 
-        bet.cashedOut = true;
-        bet.winnings = bet.betAmount * currentMultiplier;
+        const winnings = liveBet.betAmount * cashoutMultiplier;
+        const newLiveBet = { ...liveBet, cashedOut: true, winnings };
 
-        if (panelId === 1) setDisplayWinnings1(bet.winnings);
-        else setDisplayWinnings2(bet.winnings);
+        setLiveBet(newLiveBet);
 
-        setBalance(prev => prev + bet.winnings);
+        setBalance(prev => prev + winnings);
         toast({
             title: t.cashedOut,
-            description: `${t.youWonAmount} ${bet.winnings.toFixed(2)} ${t.creditsAt} ${currentMultiplier.toFixed(2)}x!`,
+            description: `${t.youWonAmount} ${winnings.toFixed(2)} ${t.creditsAt} ${cashoutMultiplier.toFixed(2)}x!`,
         });
-        forceUpdate();
-    };
+    }, [liveBet1, liveBet2, setBalance, t.cashedOut, t.creditsAt, t.youWonAmount, toast]);
+
 
     const getMultiplierColor = (val: number) => {
         if (val >= 10) return 'text-purple-400';
@@ -373,17 +374,6 @@ export default function CrashGame() {
                         )}
                         {phase === 'CRASHED' && <p className="font-bold text-4xl text-red-500 mt-4">CRASHED</p>}
                     </div>
-                    <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={chartData}>
-                            <defs>
-                                <linearGradient id="colorCrash" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor={phase === 'CRASHED' ? "#FF4F4F" : "#8884d8"} stopOpacity={0.4} />
-                                    <stop offset="95%" stopColor={phase === 'CRASHED' ? "#FF4F4F" : "#8884d8"} stopOpacity={0} />
-                                </linearGradient>
-                            </defs>
-                            <Area type="monotone" dataKey="value" stroke={phase === 'CRASHED' ? "#FF4F4F" : "#8884d8"} fillOpacity={1} fill="url(#colorCrash)" strokeWidth={4} dot={false} isAnimationActive={false} />
-                        </AreaChart>
-                    </ResponsiveContainer>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -391,24 +381,25 @@ export default function CrashGame() {
                      panelId={1}
                      phase={phase}
                      multiplier={multiplier}
-                     nextBet={nextBet1.current}
-                     liveBet={liveBet1.current}
+                     nextBet={nextBet1}
+                     liveBet={liveBet1}
                      onPlaceBet={handlePlaceBet}
                      onCancelBet={handleCancelBet}
-                     onCashout={() => handleCashout(1, multiplier)}
+                     onCashout={(id) => handleCashout(id, multiplier)}
                    />
                    <BettingPanel 
                      panelId={2}
                      phase={phase}
                      multiplier={multiplier}
-                     nextBet={nextBet2.current}
-                     liveBet={liveBet2.current}
+                     nextBet={nextBet2}
+                     liveBet={liveBet2}
                      onPlaceBet={handlePlaceBet}
                      onCancelBet={handleCancelBet}
-                     onCashout={() => handleCashout(2, multiplier)}
+                     onCashout={(id) => handleCashout(id, multiplier)}
                    />
                 </div>
             </div>
         </div>
     );
 }
+
