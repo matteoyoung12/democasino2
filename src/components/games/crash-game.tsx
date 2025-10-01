@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -134,8 +134,8 @@ export default function CrashGame() {
     useEffect(() => {
         gameLogicRef.current.betState2 = { ...gameLogicRef.current.betState2, ...betState2UI};
     }, [betState2UI]);
-
-    const handleCashout = (panelId: 1 | 2) => {
+    
+    const handleCashout = useCallback((panelId: 1 | 2) => {
         const { currentMultiplier } = gameLogicRef.current;
         const betState = panelId === 1 ? gameLogicRef.current.betState1 : gameLogicRef.current.betState2;
         const setLiveBetState = panelId === 1 ? setLiveBetState1 : setLiveBetState2;
@@ -158,7 +158,7 @@ export default function CrashGame() {
             title: t.cashedOut,
             description: `${t.youWonAmount} ${wonAmount.toFixed(2)} ${t.creditsAt} ${currentMultiplier.toFixed(2)}x!`,
         });
-    };
+    }, [setBalance, t, toast]);
 
 
     useEffect(() => {
@@ -172,10 +172,8 @@ export default function CrashGame() {
             // Reset live states for the new round
             setLiveBetState1(prev => ({...prev, hasPlacedBet: false, isCashedOut: false, winnings: 0}));
             setLiveBetState2(prev => ({...prev, hasPlacedBet: false, isCashedOut: false, winnings: 0}));
-            gameLogicRef.current.betState1.hasPlacedBet = false;
-            gameLogicRef.current.betState1.isCashedOut = false;
-            gameLogicRef.current.betState2.hasPlacedBet = false;
-            gameLogicRef.current.betState2.isCashedOut = false;
+            gameLogicRef.current.betState1 = {...gameLogicRef.current.betState1, hasPlacedBet: false, isCashedOut: false, winnings: 0};
+            gameLogicRef.current.betState2 = {...gameLogicRef.current.betState2, hasPlacedBet: false, isCashedOut: false, winnings: 0};
 
             setPlayers(initialPlayers.sort(() => 0.5 - Math.random()).slice(0, Math.floor(Math.random() * 6) + 5));
 
@@ -255,7 +253,7 @@ export default function CrashGame() {
             if(interval) clearInterval(interval);
             cancelAnimationFrame(gameLogicRef.current.animationFrameId);
         };
-    }, [phase, toast, t, setBalance]);
+    }, [phase, handleCashout, toast, t]);
 
 
     const BettingPanel = ({ panelId }: { panelId: 1 | 2}) => {
