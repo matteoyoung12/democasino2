@@ -91,6 +91,9 @@ const initialPlayers: Player[] = [
 export default function CrashGame() {
     const { language } = useLanguage();
     const t = translations[language];
+    const { balance, setBalance } = useBalance();
+    const { toast } = useToast();
+
     const [phase, setPhase] = useState<GamePhase>('BETTING');
     const [countdown, setCountdown] = useState(10);
     const [multiplier, setMultiplier] = useState(1.0);
@@ -204,9 +207,6 @@ export default function CrashGame() {
             cancelAnimationFrame(gameLogicRef.current.animationFrameId);
         };
     }, [phase, runGame, betState1.hasPlacedBet, betState1.isCashedOut, betState2.hasPlacedBet, betState2.isCashedOut, t, toast]);
-
-    const { balance, setBalance } = useBalance();
-    const { toast } = useToast();
 
     const handleCashout = useCallback((panelId: 1 | 2, cashoutMultiplier: number) => {
         const betState = panelId === 1 ? gameLogicRef.current.betState1 : gameLogicRef.current.betState2;
@@ -424,4 +424,3 @@ export default function CrashGame() {
       );
 }
 
-    
