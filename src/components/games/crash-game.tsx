@@ -6,7 +6,6 @@ import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Users, Minus, Plus } from 'lucide-react';
 import { useBalance } from '@/contexts/BalanceContext';
@@ -101,101 +100,70 @@ export default function CrashGame() {
     const [chartData, setChartData] = useState<{ time: number; value: number }[]>([{ time: 0, value: 1.0 }]);
     const [players, setPlayers] = useState<Player[]>([]);
     
-    const [betState1, setBetState1] = useState<BetState>(initialBetState);
-    const [betState2, setBetState2] = useState<BetState>(initialBetState);
+    // UI state for bet panels
+    const [betState1UI, setBetState1UI] = useState<BetState>(initialBetState);
+    const [betState2UI, setBetState2UI] = useState<BetState>(initialBetState);
 
+    // Ref to hold the latest game logic state, avoiding stale closures in loops
     const gameLogicRef = useRef({
-      animationFrameId: 0,
-      crashPoint: 1,
-      startTime: 0,
       betState1: initialBetState,
       betState2: initialBetState,
+      crashPoint: 1,
+      startTime: 0,
+      animationFrameId: 0,
+      currentMultiplier: 1.0,
     });
-    
+
+    // Sync UI state with the ref
     useEffect(() => {
-        gameLogicRef.current.betState1 = betState1;
-        gameLogicRef.current.betState2 = betState2;
-    }, [betState1, betState2]);
+        gameLogicRef.current.betState1 = betState1UI;
+    }, [betState1UI]);
+
+    useEffect(() => {
+        gameLogicRef.current.betState2 = betState2UI;
+    }, [betState2UI]);
 
 
-    const handleCashout = useCallback((panelId: 1 | 2, cashoutMultiplier: number) => {
-        const betState = panelId === 1 ? gameLogicRef.current.betState1 : gameLogicRef.current.betState2;
-        const setBetState = panelId === 1 ? setBetState1 : setBetState2;
+    const handleCashout = useCallback((panelId: 1 | 2) => {
+        const { betState1, betState2, currentMultiplier } = gameLogicRef.current;
+        const betState = panelId === 1 ? betState1 : betState2;
+        const setBetStateUI = panelId === 1 ? setBetState1UI : setBetState2UI;
 
         if (!betState.hasPlacedBet || betState.isCashedOut) return;
 
-        const wonAmount = betState.betAmount * cashoutMultiplier;
+        const wonAmount = betState.betAmount * currentMultiplier;
         setBalance(prev => prev + wonAmount);
-
-        setBetState(prev => ({...prev, isCashedOut: true, winnings: wonAmount}));
         
-        // This is crucial to update the ref immediately for the animation loop
+        const cashedOutState = { ...betState, isCashedOut: true, winnings: wonAmount };
+
         if (panelId === 1) {
-            gameLogicRef.current.betState1 = { ...gameLogicRef.current.betState1, isCashedOut: true };
+            gameLogicRef.current.betState1 = cashedOutState;
         } else {
-            gameLogicRef.current.betState2 = { ...gameLogicRef.current.betState2, isCashedOut: true };
+            gameLogicRef.current.betState2 = cashedOutState;
         }
+        setBetStateUI(cashedOutState);
 
         toast({
             title: t.cashedOut,
-            description: `${t.youWonAmount} ${wonAmount.toFixed(2)} ${t.creditsAt} ${cashoutMultiplier.toFixed(2)}x!`,
+            description: `${t.youWonAmount} ${wonAmount.toFixed(2)} ${t.creditsAt} ${currentMultiplier.toFixed(2)}x!`,
         });
     }, [setBalance, t, toast]);
 
-    const runGame = useCallback(() => {
-        const seed = Date.now() + Math.random();
-        const crashPoint = generateCrashPoint(seed);
-        const curve = generateCurveData(crashPoint);
-        const startTime = Date.now();
-        const gameDuration = Math.log(crashPoint) * 4 * 1000;
-
-        gameLogicRef.current.crashPoint = crashPoint;
-        gameLogicRef.current.startTime = startTime;
-
-        const animate = () => {
-            const elapsedTime = Date.now() - startTime;
-            const progress = Math.min(elapsedTime / gameDuration, 1);
-            
-            let currentMultiplier: number;
-            if (progress >= 1) {
-                currentMultiplier = crashPoint;
-            } else {
-                const curveIndex = Math.floor(progress * (curve.length - 1));
-                currentMultiplier = curve[curveIndex]?.value || 1;
-            }
-            
-            setMultiplier(currentMultiplier);
-            const dataIndex = Math.min(Math.floor(progress * curve.length), curve.length - 1);
-            setChartData(curve.slice(0, dataIndex + 1));
-            
-            // Auto-cashout check
-            const checkAutoCashout = (betState: BetState, panelId: 1 | 2) => {
-                if (betState.hasPlacedBet && !betState.isCashedOut && betState.autoCashoutEnabled && currentMultiplier >= betState.autoCashout) {
-                    handleCashout(panelId, betState.autoCashout);
-                }
-            };
-            checkAutoCashout(gameLogicRef.current.betState1, 1);
-            checkAutoCashout(gameLogicRef.current.betState2, 2);
-            
-            if (progress < 1) {
-              gameLogicRef.current.animationFrameId = requestAnimationFrame(animate);
-            } else {
-              setMultiplier(crashPoint);
-              setPhase('CRASHED');
-            }
-        };
-        
-        gameLogicRef.current.animationFrameId = requestAnimationFrame(animate);
-    }, [handleCashout]);
 
     useEffect(() => {
         let interval: NodeJS.Timeout | null = null;
-
+        
+        // ---- GAME STATE MACHINE ----
         if (phase === 'BETTING') {
-            setBetState1(prev => ({...prev, hasPlacedBet: false, isCashedOut: false, winnings: 0}));
-            setBetState2(prev => ({...prev, hasPlacedBet: false, isCashedOut: false, winnings: 0}));
-            setMultiplier(1.00);
+            // Reset for new round
+            gameLogicRef.current.currentMultiplier = 1.0;
+            setMultiplier(1.0);
             setChartData([{ time: 0, value: 1.0 }]);
+            
+            // Only reset bets if they haven't placed a new one for the upcoming round
+            if (!gameLogicRef.current.betState1.hasPlacedBet) setBetState1UI(prev => ({ ...prev, isCashedOut: false, winnings: 0 }));
+            if (!gameLogicRef.current.betState2.hasPlacedBet) setBetState2UI(prev => ({ ...prev, isCashedOut: false, winnings: 0 }));
+
             setPlayers(initialPlayers.sort(() => 0.5 - Math.random()).slice(0, Math.floor(Math.random() * 6) + 5));
 
             let count = 10;
@@ -208,16 +176,69 @@ export default function CrashGame() {
                     setPhase('RUNNING');
                 }
             }, 1000);
+
         } else if (phase === 'RUNNING') {
-            runGame();
+            const seed = Date.now() + Math.random();
+            const crashPoint = generateCrashPoint(seed);
+            const curve = generateCurveData(crashPoint);
+            const startTime = Date.now();
+            const gameDuration = Math.log(crashPoint) * 4 * 1000;
+
+            gameLogicRef.current.crashPoint = crashPoint;
+            gameLogicRef.current.startTime = startTime;
+            // Reset cashout status for placed bets
+            if (gameLogicRef.current.betState1.hasPlacedBet) {
+                gameLogicRef.current.betState1.isCashedOut = false;
+                setBetState1UI(prev => ({...prev, isCashedOut: false}));
+            }
+             if (gameLogicRef.current.betState2.hasPlacedBet) {
+                gameLogicRef.current.betState2.isCashedOut = false;
+                setBetState2UI(prev => ({...prev, isCashedOut: false}));
+            }
+
+            const animate = () => {
+                const elapsedTime = Date.now() - gameLogicRef.current.startTime;
+                const progress = Math.min(elapsedTime / gameDuration, 1);
+                
+                let currentMultiplier: number;
+                if (progress >= 1) {
+                    currentMultiplier = gameLogicRef.current.crashPoint;
+                } else {
+                    const curveIndex = Math.floor(progress * (curve.length - 1));
+                    currentMultiplier = curve[curveIndex]?.value || 1;
+                }
+                
+                gameLogicRef.current.currentMultiplier = currentMultiplier;
+                setMultiplier(currentMultiplier);
+                
+                const dataIndex = Math.min(Math.floor(progress * curve.length), curve.length - 1);
+                setChartData(curve.slice(0, dataIndex + 1));
+                
+                // Auto-cashout check using the ref
+                const { betState1, betState2 } = gameLogicRef.current;
+                if (betState1.hasPlacedBet && !betState1.isCashedOut && betState1.autoCashoutEnabled && currentMultiplier >= betState1.autoCashout) {
+                    handleCashout(1);
+                }
+                 if (betState2.hasPlacedBet && !betState2.isCashedOut && betState2.autoCashoutEnabled && currentMultiplier >= betState2.autoCashout) {
+                    handleCashout(2);
+                }
+                
+                if (progress < 1) {
+                  gameLogicRef.current.animationFrameId = requestAnimationFrame(animate);
+                } else {
+                  setMultiplier(gameLogicRef.current.crashPoint);
+                  setPhase('CRASHED');
+                }
+            };
+            
+            gameLogicRef.current.animationFrameId = requestAnimationFrame(animate);
+
         } else if (phase === 'CRASHED') {
             cancelAnimationFrame(gameLogicRef.current.animationFrameId);
             const crashPoint = gameLogicRef.current.crashPoint;
+            const { betState1, betState2 } = gameLogicRef.current;
 
-            const b1 = gameLogicRef.current.betState1;
-            const b2 = gameLogicRef.current.betState2;
-
-            if ((b1.hasPlacedBet && !b1.isCashedOut) || (b2.hasPlacedBet && !b2.isCashedOut)) {
+            if ((betState1.hasPlacedBet && !betState1.isCashedOut) || (betState2.hasPlacedBet && !betState2.isCashedOut)) {
                  toast({
                   title: t.crashedTitle,
                   description: `${t.rocketCrashedAt} ${crashPoint.toFixed(2)}x.`,
@@ -225,7 +246,14 @@ export default function CrashGame() {
                 });
             }
             
+            // Reset hasPlacedBet for the next round
+            gameLogicRef.current.betState1.hasPlacedBet = false;
+            gameLogicRef.current.betState2.hasPlacedBet = false;
+            setBetState1UI(prev => ({ ...prev, hasPlacedBet: false }));
+            setBetState2UI(prev => ({ ... prev, hasPlacedBet: false }));
+
             setHistory(prev => [crashPoint, ...prev].slice(0, 20));
+            
             interval = setTimeout(() => {
                 setPhase('BETTING');
             }, 3000);
@@ -235,12 +263,12 @@ export default function CrashGame() {
             if(interval) clearInterval(interval);
             cancelAnimationFrame(gameLogicRef.current.animationFrameId);
         };
-    }, [phase, runGame, t, toast]);
+    }, [phase, handleCashout, t, toast]);
 
 
     const BettingPanel = ({ panelId }: { panelId: 1 | 2}) => {
-        const betState = panelId === 1 ? betState1 : betState2;
-        const setBetState = panelId === 1 ? setBetState1 : setBetState2;
+        const betState = panelId === 1 ? betState1UI : betState2UI;
+        const setBetState = panelId === 1 ? setBetState1UI : setBetState2UI;
 
         const { betAmount, autoCashout, autoCashoutEnabled, hasPlacedBet, isCashedOut, winnings } = betState;
 
@@ -272,9 +300,13 @@ export default function CrashGame() {
 
         const MainButton = () => {
             if (phase === 'RUNNING') {
-                if (!hasPlacedBet) return <Button disabled size="lg" className="h-16 w-full text-xl bg-gray-500 text-white">Ожидание</Button>;
-                if (isCashedOut) return <Button disabled size="lg" className="h-16 w-full text-xl bg-yellow-500 text-black">Выигрыш {winnings.toFixed(2)} ₽</Button>;
-                return <Button onClick={() => handleCashout(panelId, multiplier)} size="lg" className="h-16 w-full text-xl bg-red-500 text-white hover:bg-red-600">Забрать {multiplier.toFixed(2)}x</Button>;
+                if (!hasPlacedBet) {
+                     return <Button disabled size="lg" className="h-16 w-full text-xl bg-gray-500 text-white">Ожидание</Button>;
+                }
+                if (isCashedOut) {
+                    return <Button disabled size="lg" className="h-16 w-full text-xl bg-yellow-500 text-black">Выигрыш {winnings.toFixed(2)} ₽</Button>;
+                }
+                return <Button onClick={() => handleCashout(panelId)} size="lg" className="h-16 w-full text-xl bg-red-500 text-white hover:bg-red-600">Забрать {(betAmount * multiplier).toFixed(2)} ₽</Button>;
             }
             
             if (hasPlacedBet) {
@@ -287,7 +319,7 @@ export default function CrashGame() {
         return (
             <div className="bg-[#0F1923] p-4 rounded-lg">
                 <div className="flex flex-col gap-4">
-                    <div>
+                     <div>
                         <Label className='text-xs'>Сумма ставки</Label>
                         <div className="relative mt-1">
                             <Input 
@@ -321,7 +353,7 @@ export default function CrashGame() {
                             />
                         </div>
                     </div>
-                    <div className="grid grid-cols-4 gap-2">
+                     <div className="grid grid-cols-4 gap-2">
                         {[50, 100, 500, 1000].map(val => (
                             <Button 
                                 key={val}
